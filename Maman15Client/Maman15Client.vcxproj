@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClCompile Include="AESWrapper.cpp" />
     <ClCompile Include="Base64Wrapper.cpp" />
+    <ClCompile Include="BufferUtils.cpp" />
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="InteractiveMenu.cpp" />
     <ClCompile Include="main.cpp" />
@@ -153,6 +154,7 @@
   <ItemGroup>
     <ClInclude Include="AESWrapper.h" />
     <ClInclude Include="Base64Wrapper.h" />
+    <ClInclude Include="BufferUtils.h" />
     <ClInclude Include="Client.h" />
     <ClInclude Include="InteractiveMenu.h" />
     <ClInclude Include="OpCodes.h" />
