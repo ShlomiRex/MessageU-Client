@@ -20,9 +20,9 @@
 #include "AESWrapper.h"
 #include <iomanip>
 #include "BufferUtils.h"
+#include "Defenitions.h"
+#include "Response.h"
 #pragma comment(lib, "Ws2_32.lib")
-
-#define S_PACKET_SIZE 1024
 
 using namespace std;
 
@@ -62,6 +62,7 @@ private:
 
 	//Send request of reqPacket and size of reqWriter.getOffset()
 	size_t sendRequest();
+	size_t recvResponse(char* buffer);
 public:
 	Client(string ip, string port, size_t clientVersion = 1);
 	~Client();

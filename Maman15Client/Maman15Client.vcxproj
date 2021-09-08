@@ -149,6 +149,7 @@
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="InteractiveMenu.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Response.cpp" />
     <ClCompile Include="RSAWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -156,8 +157,10 @@
     <ClInclude Include="Base64Wrapper.h" />
     <ClInclude Include="BufferUtils.h" />
     <ClInclude Include="Client.h" />
+    <ClInclude Include="Defenitions.h" />
     <ClInclude Include="InteractiveMenu.h" />
     <ClInclude Include="OpCodes.h" />
+    <ClInclude Include="Response.h" />
     <ClInclude Include="RSAWrapper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
