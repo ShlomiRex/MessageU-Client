@@ -1,15 +1,13 @@
 #include "Client.h"
 #include "InteractiveMenu.h"
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 
-#define LOG(msg) cout << "[main] " << msg << endl;
-
-namespace fs = boost::filesystem;
 using namespace std;
+#define LOG(msg) cout << "[main] " << msg << endl;
 
 int main()
 {
-	fs::ifstream server_info("server.info");
+	ifstream server_info("server.info");
 	char buff[1024] = { 0 };
 	server_info.read(buff, 1024);
 	string str_buff = buff;
@@ -30,6 +28,9 @@ int main()
 	if (choice == ClientChoices::registerUser) {
 		string username = interactiveMenu.getUsernameForRegister();
 		client.registerUser(username);
+	}
+	else if (choice == ClientChoices::reqClientList) {
+		//TODO: Complete
 	}
 	else {
 		LOG("Not yet implimented");

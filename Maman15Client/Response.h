@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "BufferUtils.h"
-#include "Defenitions.h"
+#include "ProtocolDefenitions.h"
 
 using namespace std;
 

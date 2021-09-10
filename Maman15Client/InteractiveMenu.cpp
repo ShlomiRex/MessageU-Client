@@ -63,9 +63,9 @@ ClientChoices InteractiveMenu::get_choice() {
 string InteractiveMenu::getUsernameForRegister() {
 	string username = "";
 	while (true) {
-		LOG("Please type desired username for registeration. (non-empty and maximum 255 characters)");
+		LOG("Please type desired username for registeration. (non-empty and maximum " << S_USERNAME << " characters)");
 		getline(cin, username); //for now, allow any string as username. if server is not happy we get error response anyway.
-		if (username.size() >= 1 && username.size() <= 255)
+		if (username.size() >= 1 && username.size() <= S_USERNAME)
 			break;
 	}
 	return username;

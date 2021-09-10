@@ -4,12 +4,8 @@ using namespace std;
 
 #define LOG(msg) cout << "[Client] " << msg << endl;
 
-Client::Client(string ip, string port, size_t clientVersion) {
+Client::Client(string ip, string port, size_t clientVersion) : request(clientVersion) {
 	//Initialize all internal fields and connect to server.
-
-	this->clientVersion = clientVersion;
-	this->reqPacket = new char[S_PACKET_SIZE];
-	this->reqWriter = new BufferWriter(this->reqPacket, S_PACKET_SIZE);
 
 	try {
 		this->io_context = new boost::asio::io_context();
@@ -24,7 +20,6 @@ Client::Client(string ip, string port, size_t clientVersion) {
 	}
 	catch (std::exception& e)
 	{
-		//std::cerr << e.what() << std::endl;
 		LOG(e.what());
 	}
 }
@@ -34,50 +29,34 @@ Client::~Client() {
 	delete socket;
 	delete resolver;
 	delete endpoints;
-
-	delete[] reqPacket;
-	delete reqWriter;
-}
-
-void hexify(const unsigned char* buffer, unsigned int length)
-{
-	std::ios::fmtflags f(std::cout.flags());
-	std::cout << std::hex;
-	for (size_t i = 0; i < length; i++)
-		std::cout << std::setfill('0') << std::setw(2) << (0xFF & buffer[i]) << (((i + 1) % 16 == 0) ? "\n" : " ");
-	std::cout << std::endl;
-	std::cout.flags(f);
 }
 
 void Client::registerUser(string username) {
 	LOG("Registering user...");
 
 	//Check if the info file exists
-	if (boost::filesystem::exists(REG_FILE_INFO)) {
-		LOG(REG_FILE_INFO << " already exists! Will not register.");
+	if (boost::filesystem::exists(FILE_REGISTER)) {
+		LOG(FILE_REGISTER << " already exists! Will not register.");
 		return;
 	}
 
 	char clientId[16] = { 0 };
-	pack_clientId(clientId);
-	pack_version();
-	pack_code(RequestCodes::registerUser);
+	request.pack_clientId(clientId);
+	request.pack_version();
+	request.pack_code(RequestCodes::registerUser);
 
 	//Payload size: name (with null terminator) + public key
-	pack_payloadSize(username.size() + 1 + RSAPublicWrapper::KEYSIZE);
+	request.pack_payloadSize(username.size() + 1 + RSAPublicWrapper::KEYSIZE);
 
 	//Payload: Name
-	LOG("Packing name (" << username.size() + 1 << " bytes, with null terminator): " << username);
-	this->reqWriter->write(username.c_str(), username.size());
-	this->reqWriter->write1byte(0); //With null terminator
+	request.pack_username(username);
 
 	//Payload: Public key
 	RSAPrivateWrapper rsapriv;
 	char pubkeybuff[RSAPublicWrapper::KEYSIZE];
 	rsapriv.getPublicKey(pubkeybuff, RSAPublicWrapper::KEYSIZE);
-	LOG("Packing public key (" << RSAPublicWrapper::KEYSIZE << " bytes): ");
-	hexify((const unsigned char*)pubkeybuff, RSAPublicWrapper::KEYSIZE);
-	this->reqWriter->write(pubkeybuff, RSAPublicWrapper::KEYSIZE);
+	request.pack_pub_key(pubkeybuff);
+
 
 	//Send request
 	sendRequest();
@@ -104,14 +83,14 @@ void Client::registerUser(string username) {
 			LOG("Registeration was a success! Client ID got from server:");
 			hexify((const unsigned char*)clientId, 16);
 
-			LOG("Writing username and client id to file: " << REG_FILE_INFO);
+			LOG("Writing username and client id to file: " << FILE_REGISTER);
 			//Write regular string (first line)
-			ofstream file(REG_FILE_INFO);
+			ofstream file(FILE_REGISTER);
 			file << username << endl;
 			file.flush();
 			file.close();
 			//In the second line, write in binary the client id.
-			file.open(REG_FILE_INFO, ios::app | ios::binary);
+			file.open(FILE_REGISTER, ios::app | ios::binary);
 			file.write(clientId, 16);
 			file.close();
 			LOG("Done writing");
@@ -130,33 +109,9 @@ void Client::registerUser(string username) {
 		delete response;
 }
 
-void Client::pack_clientId(const char clientId[16]) {
-	LOG("Packing clientId (16 bytes):");
-	hexify((const unsigned char*)clientId, 16);
-
-	this->reqWriter->write(clientId, 16);
-}
-
-void Client::pack_version() {
-	LOG("Packing version (1 byte): " << this->clientVersion);
-	this->reqWriter->write1byte(this->clientVersion);
-}
-
-void Client::pack_code(RequestCodes code) {
-	uint16_t reqCode = static_cast<uint16_t>(code);
-
-	LOG("Packing code (2 bytes): " << reqCode);
-	this->reqWriter->write2bytes(reqCode);
-}
-
-void Client::pack_payloadSize(uint32_t size) {
-	LOG("Packing payload size (4 bytes): " << size);
-	this->reqWriter->write4bytes(size);
-}
-
 size_t Client::sendRequest() {
-	size_t packetSize = this->reqWriter->getOffset();
-	char* buff = this->reqPacket;
+	size_t packetSize = request.getPacketSize();
+	const char* buff = request.getPacket();
 
 	LOG("Sending request (" << packetSize << " bytes): ");
 	hexify((const unsigned char*)buff, packetSize);
@@ -175,4 +130,8 @@ Response* Client::recvResponse() {
 
 	Response* response = new Response(buffer, bytes_recv);
 	return response;
+}
+
+void Client::getClients() {
+	//TODO: Complete
 }

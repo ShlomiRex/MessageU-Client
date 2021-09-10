@@ -15,8 +15,11 @@ private:
 
 	bool check_overflow(size_t bytesGoingToWrite);
 
+	bool isInternalBuffer;
 public:
+	BufferWriter(size_t bufferSize); //Create new buffer, and remember to delete at the deconstructor!
 	BufferWriter(char* buffer, size_t bufferSize);
+	~BufferWriter();
 
 	void write1byte(uint8_t);
 	void write2bytes(uint16_t);
@@ -25,6 +28,7 @@ public:
 	void write(const void* data, size_t size);
 	void writeVal(uint8_t val, size_t size);
 	size_t getOffset();
+	const char* getBuffer();
 };
 
 class BufferReader

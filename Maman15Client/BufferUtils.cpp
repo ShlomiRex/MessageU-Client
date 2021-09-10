@@ -3,9 +3,24 @@
 using namespace std;
 
 BufferWriter::BufferWriter(char* buffer, size_t bufferSize) :
-    buffer(buffer), offset(0), bufferSize(bufferSize) {
+    buffer(buffer), offset(0), bufferSize(bufferSize), isInternalBuffer(false) {
     memset(buffer, 0, bufferSize);
 }
+
+BufferWriter::BufferWriter(size_t bufferSize) : bufferSize(bufferSize), offset(0), isInternalBuffer(true) {
+    this->buffer = new char[bufferSize];
+}
+
+BufferWriter::~BufferWriter() {
+    if (isInternalBuffer && buffer != nullptr) {
+        delete[] buffer;
+    }
+}
+
+const char* BufferWriter::getBuffer() {
+    return buffer;
+}
+
 void BufferWriter::write(const void* data, size_t size) {
     if (check_overflow(size)) {
         throw exception("Buffer overflow");

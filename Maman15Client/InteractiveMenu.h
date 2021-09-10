@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include "OpCodes.h"
+#include "ProtocolDefenitions.h"
 
 using namespace std;
 
