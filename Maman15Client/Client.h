@@ -22,6 +22,8 @@
 #include "BufferUtils.h"
 #include "Defenitions.h"
 #include "Response.h"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/fstream.hpp>
 #pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;
@@ -62,7 +64,12 @@ private:
 
 	//Send request of reqPacket and size of reqWriter.getOffset()
 	size_t sendRequest();
-	size_t recvResponse(char* buffer);
+	//Returns new Response object from server
+	Response* recvResponse();
+
+	//Saving registeration information
+	void saveRegInfo(string username, const char clientId[16]);
+
 public:
 	Client(string ip, string port, size_t clientVersion = 1);
 	~Client();

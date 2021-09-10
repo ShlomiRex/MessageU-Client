@@ -1,7 +1,6 @@
 #include "Client.h"
 
 using namespace std;
-using boost::asio::ip::tcp;
 
 #define LOG(msg) cout << "[Client] " << msg << endl;
 
@@ -15,7 +14,7 @@ Client::Client(string ip, string port, size_t clientVersion) {
 	try {
 		this->io_context = new boost::asio::io_context();
 		this->socket = new boost::asio::ip::tcp::socket(*io_context);
-		this->resolver = new tcp::resolver(*io_context);
+		this->resolver = new boost::asio::ip::tcp::resolver(*io_context);
 		this->endpoints = new boost::asio::ip::tcp::resolver::results_type();
 
 		*this->endpoints = resolver->resolve(ip, port);
@@ -53,6 +52,12 @@ void hexify(const unsigned char* buffer, unsigned int length)
 void Client::registerUser(string username) {
 	LOG("Registering user...");
 
+	//Check if the info file exists
+	if (boost::filesystem::exists(REG_FILE_INFO)) {
+		LOG(REG_FILE_INFO << " already exists! Will not register.");
+		return;
+	}
+
 	char clientId[16] = { 0 };
 	pack_clientId(clientId);
 	pack_version();
@@ -74,33 +79,55 @@ void Client::registerUser(string username) {
 	hexify((const unsigned char*)pubkeybuff, RSAPublicWrapper::KEYSIZE);
 	this->reqWriter->write(pubkeybuff, RSAPublicWrapper::KEYSIZE);
 
-
+	//Send request
 	sendRequest();
 
-	
-	char data[S_PACKET_SIZE] = { 0 };
-	size_t bytesRead = recvResponse(data);
+	//Get response
+	Response* response = recvResponse();
 
+	//Parse response
 	try {
-		Response response(data, bytesRead);
-		uint16_t code = response.getCode();
+		uint16_t code = response->getCode();
 		ResponseCodes _code = static_cast<ResponseCodes>(code);
 
 		if (_code == ResponseCodes::error) {
 			LOG("Received ERROR response!");
-			LOG("User " << username << " is already in the database!");
+			LOG("Username '" << username << "' is already in the database!");
 		}
 		else if (_code == ResponseCodes::registerSuccess) {
-			LOG("Registeration was a success!");
+			size_t s_payload = response->getPayloadSize();
+			const char* clientId = response->getPayload();
+			if (s_payload != 16) {
+				throw exception("Response ClientID size is not 16 bytes!");
+			}
+			
+			LOG("Registeration was a success! Client ID got from server:");
+			hexify((const unsigned char*)clientId, 16);
+
+			LOG("Writing username and client id to file: " << REG_FILE_INFO);
+			//Write regular string (first line)
+			ofstream file(REG_FILE_INFO);
+			file << username << endl;
+			file.flush();
+			file.close();
+			//In the second line, write in binary the client id.
+			file.open(REG_FILE_INFO, ios::app | ios::binary);
+			file.write(clientId, 16);
+			file.close();
+			LOG("Done writing");
 		}
 		else {
-			LOG("Response code: " << code << " is not recognized.");
+			string e = "Response code: " + code;
+			e += " is not recognized(invalid).";
+			throw string(e);
 		}
 	}
 	catch (exception& e) {
-		LOG("ERROR While parsing response: " << e.what());
-		return;
+		LOG("ERROR while parsing response: " << e.what());
 	}
+
+	if (response != nullptr)
+		delete response;
 }
 
 void Client::pack_clientId(const char clientId[16]) {
@@ -139,11 +166,13 @@ size_t Client::sendRequest() {
 	return bytesSent;
 }
 
-size_t Client::recvResponse(char* buffer) {
+Response* Client::recvResponse() {
+	char buffer[S_PACKET_SIZE] = { 0 };
 	LOG("Receving response...");
 	size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
 	LOG("Received response (" << bytes_recv << " bytes): ");
 	hexify((const unsigned char*)buffer, bytes_recv);
-	return bytes_recv;
-}
 
+	Response* response = new Response(buffer, bytes_recv);
+	return response;
+}
