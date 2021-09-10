@@ -17,23 +17,28 @@ int main()
 	string port = str_buff.substr(index + 1);
 
 	InteractiveMenu interactiveMenu;
-	interactiveMenu.show_menu();
-	ClientChoices choice = interactiveMenu.get_choice();
 
-	//If using database, client version is 2!
-	bool isUsingSQLDatabase = true; // TODO: Change?
-	size_t clientVersion = (isUsingSQLDatabase == true) ? 2 : 1;
-	Client client(ip, port, clientVersion);
+	while (true) {
+		interactiveMenu.show_menu();
+		ClientChoices choice = interactiveMenu.get_choice();
 
-	if (choice == ClientChoices::registerUser) {
-		string username = interactiveMenu.getUsernameForRegister();
-		client.registerUser(username);
-	}
-	else if (choice == ClientChoices::reqClientList) {
-		//TODO: Complete
-	}
-	else {
-		LOG("Not yet implimented");
+		//If using database, client version is 2!
+		bool isUsingSQLDatabase = true; // TODO: Change?
+		Client client(ip, port, 1);
+
+		if (choice == ClientChoices::registerUser) {
+			string username = interactiveMenu.getUsernameForRegister();
+			client.registerUser(username);
+		}
+		else if (choice == ClientChoices::reqClientList) {
+			//TODO: Complete
+			client.getClients();
+		}
+		else {
+			LOG("Not yet implimented");
+		}
+
+		cout << "\n\n\n";
 	}
 
 	LOG("Finished running, exiting program");

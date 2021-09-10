@@ -4,7 +4,7 @@ using namespace std;
 
 #define LOG(msg) cout << "[Client] " << msg << endl;
 
-Client::Client(string ip, string port, size_t clientVersion) : request(clientVersion) {
+Client::Client(string ip, string port, uint8_t clientVersion) : request(clientVersion) {
 	//Initialize all internal fields and connect to server.
 
 	try {
@@ -40,7 +40,7 @@ void Client::registerUser(string username) {
 		return;
 	}
 
-	char clientId[16] = { 0 };
+	char clientId[S_CLIENT_ID] = { 0 };
 	request.pack_clientId(clientId);
 	request.pack_version();
 	request.pack_code(RequestCodes::registerUser);
@@ -57,12 +57,13 @@ void Client::registerUser(string username) {
 	rsapriv.getPublicKey(pubkeybuff, RSAPublicWrapper::KEYSIZE);
 	request.pack_pub_key(pubkeybuff);
 
-
 	//Send request
 	sendRequest();
 
 	//Get response
 	Response* response = recvResponse();
+	if (response == nullptr)
+		return;
 
 	//Parse response
 	try {
@@ -76,22 +77,36 @@ void Client::registerUser(string username) {
 		else if (_code == ResponseCodes::registerSuccess) {
 			size_t s_payload = response->getPayloadSize();
 			const char* clientId = response->getPayload();
-			if (s_payload != 16) {
-				throw exception("Response ClientID size is not 16 bytes!");
+			if (s_payload != S_CLIENT_ID) {
+				stringstream ss;
+				ss << "Response ClientID size is not " << S_CLIENT_ID;
+				ss << " bytes!";
+				throw string(ss.str());
 			}
 			
 			LOG("Registeration was a success! Client ID got from server:");
-			hexify((const unsigned char*)clientId, 16);
+			hexify((const unsigned char*)clientId, S_CLIENT_ID);
 
 			LOG("Writing username and client id to file: " << FILE_REGISTER);
-			//Write regular string (first line)
+
+
+			//In the first line, write username
 			ofstream file(FILE_REGISTER);
 			file << username << endl;
 			file.flush();
 			file.close();
-			//In the second line, write in binary the client id.
-			file.open(FILE_REGISTER, ios::app | ios::binary);
-			file.write(clientId, 16);
+
+			//In the second line, write the client id in human readable space seperated hex.
+			file.open(FILE_REGISTER, ios::app);
+			string str_clientid = hexify_str(clientId, S_CLIENT_ID);
+			file.write(str_clientid.c_str(), str_clientid.size());
+			file.write("\n", 1);
+			
+			//In the third line, write private key
+			string private_key = rsapriv.getPrivateKey();
+			string base64_private_key = Base64Wrapper::encode(private_key);
+			file.write(base64_private_key.c_str(), base64_private_key.size());
+
 			file.close();
 			LOG("Done writing");
 		}
@@ -124,14 +139,25 @@ size_t Client::sendRequest() {
 Response* Client::recvResponse() {
 	char buffer[S_PACKET_SIZE] = { 0 };
 	LOG("Receving response...");
-	size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
-	LOG("Received response (" << bytes_recv << " bytes): ");
-	hexify((const unsigned char*)buffer, bytes_recv);
+	try {
+		size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
+		LOG("Received response (" << bytes_recv << " bytes): ");
+		hexify((const unsigned char*)buffer, bytes_recv);
 
-	Response* response = new Response(buffer, bytes_recv);
-	return response;
+		Response* response = new Response(buffer, bytes_recv);
+		return response;
+	}
+	catch (exception& e) {
+		LOG("Error: " << e.what());
+		LOG("Is the server down?");
+		return 0;
+	}
 }
 
 void Client::getClients() {
-	//TODO: Complete
+	LOG("Getting clients...");
+
+	char clientId[S_CLIENT_ID] = { 0 };
+	//TODO: Get client id from me.info ?
+	request.pack_clientId(clientId);
 }

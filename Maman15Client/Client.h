@@ -67,7 +67,7 @@ private:
 	void saveRegInfo(string username, const char clientId[16]);
 
 public:
-	Client(string ip, string port, size_t clientVersion = 1);
+	Client(string ip, string port, uint8_t clientVersion = 1);
 	~Client();
 	void registerUser(string user);
 	void getClients();

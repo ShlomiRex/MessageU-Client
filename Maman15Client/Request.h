@@ -11,7 +11,7 @@ private:
 	uint8_t clientVersion;
 	BufferWriter writer;
 public:
-	Request(size_t clientVersion);
+	Request(uint8_t clientVersion);
 	~Request();
 	void pack_version();
 
