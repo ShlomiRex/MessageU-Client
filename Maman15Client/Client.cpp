@@ -46,7 +46,7 @@ void Client::registerUser(string username) {
 	request.pack_code(RequestCodes::registerUser);
 
 	//Payload size: name (with null terminator) + public key
-	request.pack_payloadSize(username.size() + 1 + RSAPublicWrapper::KEYSIZE);
+	request.pack_payloadSize(255 + RSAPublicWrapper::KEYSIZE);
 
 	//Payload: Name
 	request.pack_username(username);
@@ -72,7 +72,7 @@ void Client::registerUser(string username) {
 
 		if (_code == ResponseCodes::error) {
 			LOG("Received ERROR response!");
-			LOG("Username '" << username << "' is already in the database!");
+			LOG("Try again, or try diffirent username.");
 		}
 		else if (_code == ResponseCodes::registerSuccess) {
 			size_t s_payload = response->getPayloadSize();
@@ -158,6 +158,92 @@ void Client::getClients() {
 	LOG("Getting clients...");
 
 	char clientId[S_CLIENT_ID] = { 0 };
-	//TODO: Get client id from me.info ?
+	getSavedClientId(clientId);
 	request.pack_clientId(clientId);
+	request.pack_version();
+	request.pack_code(RequestCodes::reqClientList);
+	request.pack_payloadSize(0);
+
+	sendRequest();
+
+	Response* response = recvResponse();
+	if (response == nullptr)
+		return;
+
+	//Parse response
+	try {
+		uint16_t code = response->getCode();
+		ResponseCodes _code = static_cast<ResponseCodes>(code);
+
+		if (_code == ResponseCodes::error) {
+			LOG("Received ERROR response!");
+		}
+		else if (_code == ResponseCodes::listUsers) {
+			LOG("Get clients success response!");
+			size_t s_payload = response->getPayloadSize();
+			const char* payload = response->getPayload();
+
+
+		}
+		else {
+			string e = "Response code: " + code;
+			e += " is not recognized(invalid).";
+			throw string(e);
+		}
+	}
+	catch (exception& e) {
+
+	}
+}
+
+string Client::getSavedUsername() {
+	ifstream file(FILE_REGISTER);
+
+	string line1;
+	getline(file, line1);
+
+	return line1;
+}
+
+const char* Client::getSavedPrivateKey() {
+	ifstream file(FILE_REGISTER);
+
+	string line1, line2;
+	getline(file, line1);
+	getline(file, line2);
+
+	char* private_key = new char[S_FILE_REGISTER];
+	private_key = { 0 };
+
+	file.read(private_key, S_FILE_REGISTER);
+
+	return private_key;
+}
+
+void Client::getSavedClientId(char buffer[S_CLIENT_ID]) {
+	ifstream file(FILE_REGISTER);
+
+	string line1, line2;
+	getline(file, line1);
+	getline(file, line2);
+
+	// Remove spaces
+	auto noSpaceEnd = std::remove(line2.begin(), line2.end(), ' ');
+	line2.erase(noSpaceEnd, line2.end());
+
+	//std::remove_if(line2.begin(), line2.end(), isspace);
+
+	//boost::algorithm::erase_all(line2, ' ');
+
+	//string hash = boost::algorithm::unhex(string("313233343536373839"));
+	//string hash2 = boost::algorithm::unhex(string("31 32 33 34 35 36 37 38 39"));
+
+	string hash = boost::algorithm::unhex(line2);
+	if (hash.size() != S_CLIENT_ID) {
+		throw exception("Couldn't properly read client id from the file. (Hex size is not 16)");
+	}
+
+	for (int i = 0; i < S_CLIENT_ID; i++) {
+		buffer[i] = hash.at(i);
+	}
 }

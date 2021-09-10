@@ -26,6 +26,8 @@
 #include <boost/filesystem/fstream.hpp>
 #include "Request.h"
 #include "Utils.h"
+#include <algorithm>
+#include <boost/algorithm/hex.hpp>
 #pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;
@@ -35,16 +37,6 @@ struct InitSocketException : public exception {
 		return "Encountered exception while initializing client socket.";
 	}
 };
-
-/*
-struct Request {
-	char clientId[16];
-	uint8_t version;
-	uint16_t code;
-	uint32_t payloadSize;
-	char* payload;
-};
-*/
 
 //Client holds a single request buffer. Because the protocol is stateless, we only send ONE request, per client object.
 //The responses, however, can be more than 1 packet.
@@ -58,13 +50,16 @@ private:
 	boost::asio::ip::tcp::resolver* resolver;
 	boost::asio::ip::tcp::resolver::results_type* endpoints;
 
-	//Send request of reqPacket and size of reqWriter.getOffset()
 	size_t sendRequest();
 	//Returns new Response object from server
 	Response* recvResponse();
 
 	//Saving registeration information
-	void saveRegInfo(string username, const char clientId[16]);
+	void saveRegInfo(string username, const char clientId[S_CLIENT_ID]);
+
+	string getSavedUsername();
+	void getSavedClientId(char buffer[S_CLIENT_ID]);
+	const char* getSavedPrivateKey();
 
 public:
 	Client(string ip, string port, uint8_t clientVersion = 1);

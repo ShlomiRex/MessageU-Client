@@ -9,6 +9,7 @@ BufferWriter::BufferWriter(char* buffer, size_t bufferSize) :
 
 BufferWriter::BufferWriter(size_t bufferSize) : bufferSize(bufferSize), offset(0), isInternalBuffer(true) {
     this->buffer = new char[bufferSize];
+    memset(buffer, 0, bufferSize);
 }
 
 BufferWriter::~BufferWriter() {

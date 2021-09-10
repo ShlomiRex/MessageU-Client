@@ -8,6 +8,7 @@ enum class ClientChoices {
 	sendText = 50,
 	sendReqSymmetricKey = 51,
 	sendSymmetricKey = 52,
+	sendFile = 53,
 	exitProgram = 0
 };
 

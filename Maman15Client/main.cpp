@@ -7,7 +7,7 @@ using namespace std;
 
 int main()
 {
-	ifstream server_info("server.info");
+	ifstream server_info(FILE_SERVER);
 	char buff[1024] = { 0 };
 	server_info.read(buff, 1024);
 	string str_buff = buff;
@@ -33,6 +33,12 @@ int main()
 		else if (choice == ClientChoices::reqClientList) {
 			//TODO: Complete
 			client.getClients();
+		}
+		else if (choice == ClientChoices::exitProgram) {
+			break;
+		}
+		else if (choice == ClientChoices::sendFile) {
+			//TODO: Impliment as bonous
 		}
 		else {
 			LOG("Not yet implimented");

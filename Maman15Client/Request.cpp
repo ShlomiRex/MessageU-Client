@@ -19,7 +19,7 @@ void Request::pack_version() {
 
 
 void Request::pack_clientId(const char clientId[S_CLIENT_ID]) {
-	LOG("Packing clientId (16 bytes):");
+	LOG("Packing clientId (" << S_CLIENT_ID << " bytes):");
 	hexify((const unsigned char*)clientId, S_CLIENT_ID);
 
 	writer.write(clientId, S_CLIENT_ID);
@@ -38,9 +38,10 @@ void Request::pack_payloadSize(uint32_t size) {
 }
 
 void Request::pack_username(string username) {
-	LOG("Packing name (" << username.size() + 1 << " bytes, with null terminator): " << username);
-	writer.write(username.c_str(), username.size());
-	writer.write1byte(0); //With null terminator
+	LOG("Packing name (" << S_USERNAME << " bytes, with null terminator): " << username);
+	char buff[S_USERNAME] = { 0 };
+	username.copy(buff, S_USERNAME);
+	writer.write(buff, S_USERNAME);
 }
 
 void Request::pack_pub_key(const char pubkey[S_PUBLIC_KEY]) {
