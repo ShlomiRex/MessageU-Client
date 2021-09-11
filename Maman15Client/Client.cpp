@@ -2,26 +2,29 @@
 
 using namespace std;
 
+//#define DEBUGGING
+#ifdef DEBUGGING
+	#define DEBUG(msg) cout << "[Debug] [Client] " << msg << endl;
+#endif // DEBUG
+#ifndef DEBUGGING
+	#define DEBUG(msg) 
+#endif
+
 #define LOG(msg) cout << "[Client] " << msg << endl;
+
+
 
 Client::Client(string ip, string port, uint8_t clientVersion) : request(clientVersion) {
 	//Initialize all internal fields and connect to server.
 
-	try {
-		this->io_context = new boost::asio::io_context();
-		this->socket = new boost::asio::ip::tcp::socket(*io_context);
-		this->resolver = new boost::asio::ip::tcp::resolver(*io_context);
-		this->endpoints = new boost::asio::ip::tcp::resolver::results_type();
+	this->io_context = new boost::asio::io_context();
+	this->socket = new boost::asio::ip::tcp::socket(*io_context);
+	this->resolver = new boost::asio::ip::tcp::resolver(*io_context);
+	this->endpoints = new boost::asio::ip::tcp::resolver::results_type();
 
-		*this->endpoints = resolver->resolve(ip, port);
-		LOG("Connecting to server...");
-		boost::asio::connect(*socket, *endpoints);
-		LOG("Connected");
-	}
-	catch (std::exception& e)
-	{
-		LOG(e.what());
-	}
+	*this->endpoints = resolver->resolve(ip, port);
+	LOG("Connecting to server...");
+	boost::asio::connect(*socket, *endpoints);
 }
 
 Client::~Client() {
@@ -87,7 +90,7 @@ void Client::registerUser(string username) {
 			LOG("Registeration was a success! Client ID got from server:");
 			hexify((const unsigned char*)clientId, S_CLIENT_ID);
 
-			LOG("Writing username and client id to file: " << FILE_REGISTER);
+			DEBUG("Writing username and client id to file: " << FILE_REGISTER);
 
 
 			//In the first line, write username
@@ -108,7 +111,7 @@ void Client::registerUser(string username) {
 			file.write(base64_private_key.c_str(), base64_private_key.size());
 
 			file.close();
-			LOG("Done writing");
+			DEBUG("Done writing");
 		}
 		else {
 			string e = "Response code: " + code;
@@ -130,20 +133,23 @@ size_t Client::sendRequest() {
 
 	LOG("Sending request (" << packetSize << " bytes): ");
 	hexify((const unsigned char*)buff, packetSize);
-
 	size_t bytesSent = this->socket->send(boost::asio::buffer(buff, packetSize));
-	LOG("Sent " << bytesSent << " bytes!");
+	DEBUG("Sent " << bytesSent << " bytes!");
 	return bytesSent;
 }
 
-Response* Client::recvResponse() {
+Response* Client::recvResponse(bool with_payload) {
 	char buffer[S_PACKET_SIZE] = { 0 };
-	LOG("Receving response...");
+	DEBUG("Receving response...");
 	try {
-		size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
-		LOG("Received response (" << bytes_recv << " bytes): ");
+		size_t bytestoRecv = S_PACKET_SIZE;
+		if (! with_payload)
+			bytestoRecv = S_RESPONSE_HEADER;
+		size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, bytestoRecv));
+		DEBUG("Received response (" << bytes_recv << " bytes): ");
+#ifdef DEBUGGING
 		hexify((const unsigned char*)buffer, bytes_recv);
-
+#endif
 		Response* response = new Response(buffer, bytes_recv);
 		return response;
 	}
@@ -166,7 +172,8 @@ void Client::getClients() {
 
 	sendRequest();
 
-	Response* response = recvResponse();
+	//Get only the header, for now
+	Response* response = recvResponse(false);
 	if (response == nullptr)
 		return;
 
@@ -179,11 +186,29 @@ void Client::getClients() {
 			LOG("Received ERROR response!");
 		}
 		else if (_code == ResponseCodes::listUsers) {
-			LOG("Get clients success response!");
+			LOG("Get clients response is success!");
 			size_t s_payload = response->getPayloadSize();
-			const char* payload = response->getPayload();
 
+			//We need to read s_payload
+			size_t payloadBytesRead = 0;
+			size_t s_users = 0;
+			while (payloadBytesRead < s_payload) {
+				s_users += 1;
+				char buffer[S_CLIENT_ID + S_USERNAME] = { 0 };
+				size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_CLIENT_ID + S_USERNAME));
+				DEBUG("Read " << bytes_recv << " bytes from payload.");
+				payloadBytesRead += bytes_recv;
+				BufferReader reader(buffer, S_CLIENT_ID + S_USERNAME);
+				char client_id[S_CLIENT_ID] = { 0 };
+				char username[S_USERNAME] = { 0 };
+				reader.read(S_CLIENT_ID, client_id, S_CLIENT_ID);
+				reader.read(S_USERNAME, username, S_USERNAME);
 
+				LOG("User " << s_users << " name: " << username);
+				LOG("User " << s_users << " client id: ");
+				hexify((const unsigned char*)client_id, S_CLIENT_ID);
+			}
+			LOG("Done listing " << s_users << " users.");
 		}
 		else {
 			string e = "Response code: " + code;
@@ -192,7 +217,7 @@ void Client::getClients() {
 		}
 	}
 	catch (exception& e) {
-
+		LOG("Error: " << e.what());
 	}
 }
 
@@ -230,13 +255,6 @@ void Client::getSavedClientId(char buffer[S_CLIENT_ID]) {
 	// Remove spaces
 	auto noSpaceEnd = std::remove(line2.begin(), line2.end(), ' ');
 	line2.erase(noSpaceEnd, line2.end());
-
-	//std::remove_if(line2.begin(), line2.end(), isspace);
-
-	//boost::algorithm::erase_all(line2, ' ');
-
-	//string hash = boost::algorithm::unhex(string("313233343536373839"));
-	//string hash2 = boost::algorithm::unhex(string("31 32 33 34 35 36 37 38 39"));
 
 	string hash = boost::algorithm::unhex(line2);
 	if (hash.size() != S_CLIENT_ID) {

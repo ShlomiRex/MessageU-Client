@@ -52,7 +52,9 @@ private:
 
 	size_t sendRequest();
 	//Returns new Response object from server
-	Response* recvResponse();
+	//If 'with_payload' is false, recv only 7 bytes (header only).
+	//Else, recv S_PACKET_SIZE bytes.
+	Response* recvResponse(bool with_payload = true); 
 
 	//Saving registeration information
 	void saveRegInfo(string username, const char clientId[S_CLIENT_ID]);

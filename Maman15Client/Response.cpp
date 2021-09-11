@@ -6,8 +6,14 @@ Response::Response(const char* buff, size_t buffSize) {
 	this->code = reader.read2bytes();
 	this->payloadSize = reader.read4bytes();
 
-	this->payload = new char[S_PACKET_SIZE];
-	reader.read(this->payloadSize, this->payload, S_PACKET_SIZE);
+	if (buffSize > S_RESPONSE_HEADER) {
+		this->payload = new char[S_PACKET_SIZE];
+		memset(payload, 0, S_PACKET_SIZE);
+		reader.read(this->payloadSize, this->payload, S_PACKET_SIZE);
+	}
+	else {
+		this->payload = nullptr;
+	}
 }
 
 Response::~Response() {

@@ -15,7 +15,7 @@ public:
 	~Request();
 	void pack_version();
 
-	void pack_clientId(const char clientId[16]);
+	void pack_clientId(const char clientId[S_CLIENT_ID]);
 	void pack_code(RequestCodes code);
 	void pack_payloadSize(uint32_t size);
 	void pack_username(std::string username);

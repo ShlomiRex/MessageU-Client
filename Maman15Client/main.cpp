@@ -24,26 +24,31 @@ int main()
 
 		//If using database, client version is 2!
 		bool isUsingSQLDatabase = true; // TODO: Change?
-		Client client(ip, port, 1);
+		try {
+			Client client(ip, port, 1);
 
-		if (choice == ClientChoices::registerUser) {
-			string username = interactiveMenu.getUsernameForRegister();
-			client.registerUser(username);
+			if (choice == ClientChoices::registerUser) {
+				string username = interactiveMenu.getUsernameForRegister();
+				client.registerUser(username);
+			}
+			else if (choice == ClientChoices::reqClientList) {
+				//TODO: Complete
+				client.getClients();
+			}
+			else if (choice == ClientChoices::exitProgram) {
+				break;
+			}
+			else if (choice == ClientChoices::sendFile) {
+				//TODO: Impliment as bonous
+			}
+			else {
+				LOG("Not yet implimented");
+			}
 		}
-		else if (choice == ClientChoices::reqClientList) {
-			//TODO: Complete
-			client.getClients();
+		catch (exception& e) {
+			LOG(e.what());
+			LOG("Could not connect to the server.");
 		}
-		else if (choice == ClientChoices::exitProgram) {
-			break;
-		}
-		else if (choice == ClientChoices::sendFile) {
-			//TODO: Impliment as bonous
-		}
-		else {
-			LOG("Not yet implimented");
-		}
-
 		cout << "\n\n\n";
 	}
 
