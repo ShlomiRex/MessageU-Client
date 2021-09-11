@@ -131,8 +131,10 @@ size_t Client::sendRequest() {
 	size_t packetSize = request.getPacketSize();
 	const char* buff = request.getPacket();
 
-	LOG("Sending request (" << packetSize << " bytes): ");
+	DEBUG("Sending request (" << packetSize << " bytes): ");
+#ifdef DEBUGGING
 	hexify((const unsigned char*)buff, packetSize);
+#endif
 	size_t bytesSent = this->socket->send(boost::asio::buffer(buff, packetSize));
 	DEBUG("Sent " << bytesSent << " bytes!");
 	return bytesSent;
@@ -164,7 +166,7 @@ void Client::getClients() {
 	LOG("Getting clients...");
 
 	char clientId[S_CLIENT_ID] = { 0 };
-	getSavedClientId(clientId);
+	FileManager::getSavedClientId(clientId);
 	request.pack_clientId(clientId);
 	request.pack_version();
 	request.pack_code(RequestCodes::reqClientList);
@@ -172,7 +174,7 @@ void Client::getClients() {
 
 	sendRequest();
 
-	//Get only the header, for now
+	//Get only the header, for now (by giving 'false' flag)
 	Response* response = recvResponse(false);
 	if (response == nullptr)
 		return;
@@ -192,21 +194,28 @@ void Client::getClients() {
 			//We need to read s_payload
 			size_t payloadBytesRead = 0;
 			size_t s_users = 0;
+			cout << endl;
 			while (payloadBytesRead < s_payload) {
 				s_users += 1;
+
+				//Receive next payload
 				char buffer[S_CLIENT_ID + S_USERNAME] = { 0 };
 				size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_CLIENT_ID + S_USERNAME));
 				DEBUG("Read " << bytes_recv << " bytes from payload.");
 				payloadBytesRead += bytes_recv;
+
+				//Read to buffers
 				BufferReader reader(buffer, S_CLIENT_ID + S_USERNAME);
 				char client_id[S_CLIENT_ID] = { 0 };
 				char username[S_USERNAME] = { 0 };
 				reader.read(S_CLIENT_ID, client_id, S_CLIENT_ID);
 				reader.read(S_USERNAME, username, S_USERNAME);
 
-				LOG("User " << s_users << " name: " << username);
-				LOG("User " << s_users << " client id: ");
+				//Print buffers
+				LOG("User " << s_users << ": " << username);
+				LOG("Client ID:");
 				hexify((const unsigned char*)client_id, S_CLIENT_ID);
+				cout << endl;
 			}
 			LOG("Done listing " << s_users << " users.");
 		}
@@ -221,47 +230,9 @@ void Client::getClients() {
 	}
 }
 
-string Client::getSavedUsername() {
-	ifstream file(FILE_REGISTER);
+void Client::getPublicKey(char client_id[S_CLIENT_ID], char result_pub_key[S_PUBLIC_KEY]) {
+	LOG("Getting public key...");
 
-	string line1;
-	getline(file, line1);
 
-	return line1;
 }
 
-const char* Client::getSavedPrivateKey() {
-	ifstream file(FILE_REGISTER);
-
-	string line1, line2;
-	getline(file, line1);
-	getline(file, line2);
-
-	char* private_key = new char[S_FILE_REGISTER];
-	private_key = { 0 };
-
-	file.read(private_key, S_FILE_REGISTER);
-
-	return private_key;
-}
-
-void Client::getSavedClientId(char buffer[S_CLIENT_ID]) {
-	ifstream file(FILE_REGISTER);
-
-	string line1, line2;
-	getline(file, line1);
-	getline(file, line2);
-
-	// Remove spaces
-	auto noSpaceEnd = std::remove(line2.begin(), line2.end(), ' ');
-	line2.erase(noSpaceEnd, line2.end());
-
-	string hash = boost::algorithm::unhex(line2);
-	if (hash.size() != S_CLIENT_ID) {
-		throw exception("Couldn't properly read client id from the file. (Hex size is not 16)");
-	}
-
-	for (int i = 0; i < S_CLIENT_ID; i++) {
-		buffer[i] = hash.at(i);
-	}
-}

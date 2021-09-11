@@ -22,12 +22,10 @@
 #include "BufferUtils.h"
 #include "ProtocolDefenitions.h"
 #include "Response.h"
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include "Request.h"
 #include "Utils.h"
 #include <algorithm>
-#include <boost/algorithm/hex.hpp>
+#include "FileManager.h"
 #pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;
@@ -56,18 +54,12 @@ private:
 	//Else, recv S_PACKET_SIZE bytes.
 	Response* recvResponse(bool with_payload = true); 
 
-	//Saving registeration information
-	void saveRegInfo(string username, const char clientId[S_CLIENT_ID]);
-
-	string getSavedUsername();
-	void getSavedClientId(char buffer[S_CLIENT_ID]);
-	const char* getSavedPrivateKey();
-
 public:
 	Client(string ip, string port, uint8_t clientVersion = 1);
 	~Client();
 	void registerUser(string user);
 	void getClients();
+	void getPublicKey(char client_id[S_CLIENT_ID], char result_pub_key[S_PUBLIC_KEY]);
 };
 
 

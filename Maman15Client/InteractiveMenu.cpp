@@ -70,3 +70,42 @@ string InteractiveMenu::getUsernameForRegister() {
 	}
 	return username;
 }
+
+void InteractiveMenu::getClientId(char buffer[S_CLIENT_ID])
+{
+	LOG("Please type client id (in hex, 16 bytes, for example: '66 c1 81 ...'):");
+	string line;
+
+	while (true) {
+		getline(cin, line);
+
+		try {
+			//Remove all spaces
+			line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
+			
+			//Check exact size
+			if (line.size() == S_CLIENT_ID * 2) {
+				//Check hex conversion (for example, 'G' letter is not hex. Or any other character like '/'.)
+				try {
+					string unhex = boost::algorithm::unhex(line);
+					std::copy(unhex.begin(), unhex.end(), buffer);
+					break;
+				}
+				catch (exception& e) {
+					LOG(e.what());
+					LOG("Couldn't convert input to valid hex string. Please try again.");
+				}
+			}
+			else {
+				LOG("Please type valid 16 bytes hex.");
+			}
+		}
+		catch (exception& e) {
+			LOG(e.what());
+			LOG("Couldn't remove spaces from the input. Please try again.")
+		}
+	}
+
+
+
+}

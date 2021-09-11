@@ -13,72 +13,102 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Crypto">
+      <UniqueIdentifier>{8bb923cd-f714-462f-9a48-08ddc7125a94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Crypto">
+      <UniqueIdentifier>{893c59cf-6d85-40cf-9ef3-dbd0d0f298d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Client">
+      <UniqueIdentifier>{1734bb72-6c66-4901-8ad6-11ea2c4be042}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Menu">
+      <UniqueIdentifier>{d55a3284-da87-401c-810d-76429caa31f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Utils">
+      <UniqueIdentifier>{a748e19f-50fa-4209-9043-03d21dd24cb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Menu">
+      <UniqueIdentifier>{fb2d614c-2e2d-41a5-ac1c-9fccb831522a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Client">
+      <UniqueIdentifier>{2a382ae1-3579-4489-a106-15252b702b3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Utils">
+      <UniqueIdentifier>{9a560be1-547c-4c7a-9c74-f5abea443b01}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Client.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="InteractiveMenu.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Base64Wrapper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="RSAWrapper.cpp">
+      <Filter>Source Files\Crypto</Filter>
     </ClCompile>
     <ClCompile Include="AESWrapper.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Crypto</Filter>
     </ClCompile>
-    <ClCompile Include="RSAWrapper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Base64Wrapper.cpp">
+      <Filter>Source Files\Crypto</Filter>
     </ClCompile>
-    <ClCompile Include="BufferUtils.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="InteractiveMenu.cpp">
+      <Filter>Source Files\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="Client.cpp">
+      <Filter>Source Files\Client</Filter>
     </ClCompile>
     <ClCompile Include="Response.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Client</Filter>
     </ClCompile>
     <ClCompile Include="Request.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Client</Filter>
     </ClCompile>
     <ClCompile Include="Utils.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="BufferUtils.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="FileManager.cpp">
+      <Filter>Source Files\Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Client.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="InteractiveMenu.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="OpCodes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Base64Wrapper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AESWrapper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RSAWrapper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BufferUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Response.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ProtocolDefenitions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AESWrapper.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Base64Wrapper.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="RSAWrapper.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Client.h">
+      <Filter>Header Files\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="Response.h">
+      <Filter>Header Files\Client</Filter>
+    </ClInclude>
     <ClInclude Include="Request.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="InteractiveMenu.h">
+      <Filter>Header Files\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferUtils.h">
+      <Filter>Header Files\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Utils.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="FileManager.h">
+      <Filter>Header Files\Utils</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

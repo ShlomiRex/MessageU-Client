@@ -1,4 +1,4 @@
-#include "Client.h"
+﻿#include "Client.h"
 #include "InteractiveMenu.h"
 #include <boost/filesystem/operations.hpp>
 
@@ -38,6 +38,12 @@ int main()
 			else if (choice == ClientChoices::exitProgram) {
 				break;
 			}
+			else if (choice == ClientChoices::reqPublicKey) {
+				char client_id[S_CLIENT_ID] = { 0 };
+				interactiveMenu.getClientId(client_id);
+				char pub_key[S_PUBLIC_KEY] = { 0 };
+				client.getPublicKey(client_id, pub_key);
+			}
 			else if (choice == ClientChoices::sendFile) {
 				//TODO: Impliment as bonous
 			}
@@ -47,7 +53,6 @@ int main()
 		}
 		catch (exception& e) {
 			LOG(e.what());
-			LOG("Could not connect to the server.");
 		}
 		cout << "\n\n\n";
 	}
