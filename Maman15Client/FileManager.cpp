@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void FileManager::getSavedClientId(char buffer[S_CLIENT_ID]) {
+void FileManager::getSavedClientId(ClientId buffer) {
 	ifstream file(FILE_REGISTER);
 
 	string line1, line2;

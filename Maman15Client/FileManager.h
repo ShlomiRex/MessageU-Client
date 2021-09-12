@@ -10,7 +10,7 @@
 class FileManager
 {
 public:
-	static void getSavedClientId(char buffer[S_CLIENT_ID]);
+	static void getSavedClientId(ClientId buffer);
 	std::string getSavedUsername();
 	const char* getSavedPrivateKey();
 };

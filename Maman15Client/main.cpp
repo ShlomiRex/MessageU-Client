@@ -1,6 +1,7 @@
 ﻿#include "Client.h"
 #include "InteractiveMenu.h"
 #include <boost/filesystem/operations.hpp>
+#include "MenuDefenitions.h"
 
 using namespace std;
 #define LOG(msg) cout << "[main] " << msg << endl;
@@ -39,9 +40,9 @@ int main()
 				break;
 			}
 			else if (choice == ClientChoices::reqPublicKey) {
-				char client_id[S_CLIENT_ID] = { 0 };
+				ClientId client_id = { 0 };
 				interactiveMenu.getClientId(client_id);
-				char pub_key[S_PUBLIC_KEY] = { 0 };
+				PublicKey pub_key = { 0 };
 				client.getPublicKey(client_id, pub_key);
 			}
 			else if (choice == ClientChoices::sendFile) {

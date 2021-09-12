@@ -71,7 +71,7 @@ string InteractiveMenu::getUsernameForRegister() {
 	return username;
 }
 
-void InteractiveMenu::getClientId(char buffer[S_CLIENT_ID])
+void InteractiveMenu::getClientId(ClientId buffer)
 {
 	LOG("Please type client id (in hex, 16 bytes, for example: '66 c1 81 ...'):");
 	string line;

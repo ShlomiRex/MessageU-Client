@@ -158,3 +158,11 @@ bool BufferReader::check_overflow(size_t bytesToRead) {
 
     return false;
 }
+
+void BufferReader::addOffset(size_t amount) {
+    if (amount + offset > bufferSize) {
+        throw exception("Can't add offset: amount with offset will overflow buffer size.");
+    }
+
+    offset += amount;
+}

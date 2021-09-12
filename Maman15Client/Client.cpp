@@ -12,9 +12,7 @@ using namespace std;
 
 #define LOG(msg) cout << "[Client] " << msg << endl;
 
-
-
-Client::Client(string ip, string port, uint8_t clientVersion) : request(clientVersion) {
+Client::Client(string ip, string port, Version clientVersion) : request(clientVersion) {
 	//Initialize all internal fields and connect to server.
 
 	this->io_context = new boost::asio::io_context();
@@ -43,7 +41,7 @@ void Client::registerUser(string username) {
 		return;
 	}
 
-	char clientId[S_CLIENT_ID] = { 0 };
+	ClientId clientId = { 0 };
 	request.pack_clientId(clientId);
 	request.pack_version();
 	request.pack_code(RequestCodes::registerUser);
@@ -64,67 +62,44 @@ void Client::registerUser(string username) {
 	sendRequest();
 
 	//Get response
-	Response* response = recvResponse();
-	if (response == nullptr)
-		return;
-
-	//Parse response
 	try {
-		uint16_t code = response->getCode();
-		ResponseCodes _code = static_cast<ResponseCodes>(code);
+		ResponseHeader header = recvResponseHeader(ResponseCodes::registerSuccess);
 
-		if (_code == ResponseCodes::error) {
-			LOG("Received ERROR response!");
-			LOG("Try again, or try diffirent username.");
-		}
-		else if (_code == ResponseCodes::registerSuccess) {
-			size_t s_payload = response->getPayloadSize();
-			const char* clientId = response->getPayload();
-			if (s_payload != S_CLIENT_ID) {
-				stringstream ss;
-				ss << "Response ClientID size is not " << S_CLIENT_ID;
-				ss << " bytes!";
-				throw string(ss.str());
-			}
-			
-			LOG("Registeration was a success! Client ID got from server:");
-			hexify((const unsigned char*)clientId, S_CLIENT_ID);
+		//const char* clientId = recvNextPayload(header.getPayloadSize());
 
-			DEBUG("Writing username and client id to file: " << FILE_REGISTER);
+		ClientId clientId;
+		recvClientId(clientId);
 
+		LOG("Registeration was a success! Client ID got from server:");
+		hexify((const unsigned char*)clientId, S_CLIENT_ID);
 
-			//In the first line, write username
-			ofstream file(FILE_REGISTER);
-			file << username << endl;
-			file.flush();
-			file.close();
+		DEBUG("Writing username and client id to file: " << FILE_REGISTER);
 
-			//In the second line, write the client id in human readable space seperated hex.
-			file.open(FILE_REGISTER, ios::app);
-			string str_clientid = hexify_str(clientId, S_CLIENT_ID);
-			file.write(str_clientid.c_str(), str_clientid.size());
-			file.write("\n", 1);
-			
-			//In the third line, write private key
-			string private_key = rsapriv.getPrivateKey();
-			string base64_private_key = Base64Wrapper::encode(private_key);
-			file.write(base64_private_key.c_str(), base64_private_key.size());
+		//In the first line, write username
+		ofstream file(FILE_REGISTER);
+		file << username << endl;
+		file.flush();
+		file.close();
 
-			file.close();
-			DEBUG("Done writing");
-		}
-		else {
-			string e = "Response code: " + code;
-			e += " is not recognized(invalid).";
-			throw string(e);
-		}
+		//In the second line, write the client id in human readable space seperated hex.
+		file.open(FILE_REGISTER, ios::app);
+		string str_clientid = hexify_str(clientId, S_CLIENT_ID);
+		file.write(str_clientid.c_str(), str_clientid.size());
+		file.write("\n", 1);
+
+		//In the third line, write private key
+		string private_key = rsapriv.getPrivateKey();
+		string base64_private_key = Base64Wrapper::encode(private_key);
+		file.write(base64_private_key.c_str(), base64_private_key.size());
+
+		file.close();
+		DEBUG("Done writing");
+
+		delete[] clientId;
 	}
 	catch (exception& e) {
-		LOG("ERROR while parsing response: " << e.what());
+		LOG(e.what());
 	}
-
-	if (response != nullptr)
-		delete response;
 }
 
 size_t Client::sendRequest() {
@@ -140,33 +115,42 @@ size_t Client::sendRequest() {
 	return bytesSent;
 }
 
-Response* Client::recvResponse(bool with_payload) {
-	char buffer[S_PACKET_SIZE] = { 0 };
-	DEBUG("Receving response...");
-	try {
-		size_t bytestoRecv = S_PACKET_SIZE;
-		if (! with_payload)
-			bytestoRecv = S_RESPONSE_HEADER;
-		size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, bytestoRecv));
-		DEBUG("Received response (" << bytes_recv << " bytes): ");
+ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
+	DEBUG("Receving response header...");
+
+	const char* payload = recvNextPayload(S_RESPONSE_HEADER);
+
 #ifdef DEBUGGING
-		hexify((const unsigned char*)buffer, bytes_recv);
+	hexify((const unsigned char*)payload, S_RESPONSE_HEADER);
 #endif
-		Response* response = new Response(buffer, bytes_recv);
-		return response;
+	ResponseHeader header(payload, S_RESPONSE_HEADER);
+
+	//Parse code
+	ResponseCodes _code = static_cast<ResponseCodes>(header.getCode());
+	if (_code == ResponseCodes::error) {
+		LOG("Received ERROR response!");
+		throw ResponseErrorException();
 	}
-	catch (exception& e) {
-		LOG("Error: " << e.what());
-		LOG("Is the server down?");
-		return 0;
+	else if (_code != requiredCode) {
+		throw InvalidResponseCodeException();
 	}
+
+	return header;
 }
 
 void Client::getClients() {
 	LOG("Getting clients...");
 
-	char clientId[S_CLIENT_ID] = { 0 };
-	FileManager::getSavedClientId(clientId);
+	ClientId clientId = { 0 };
+	try {
+		FileManager::getSavedClientId(clientId);
+	}
+	catch (exception& e) {
+		LOG(e.what());
+		LOG("Error while getting client id from " << FILE_REGISTER);
+		return;
+	}
+	
 	request.pack_clientId(clientId);
 	request.pack_version();
 	request.pack_code(RequestCodes::reqClientList);
@@ -174,65 +158,103 @@ void Client::getClients() {
 
 	sendRequest();
 
-	//Get only the header, for now (by giving 'false' flag)
-	Response* response = recvResponse(false);
-	if (response == nullptr)
-		return;
-
-	//Parse response
+	//Get response
+	
 	try {
-		uint16_t code = response->getCode();
-		ResponseCodes _code = static_cast<ResponseCodes>(code);
+		//Get only the header, for now
+		ResponseHeader header = recvResponseHeader(ResponseCodes::listUsers);
 
-		if (_code == ResponseCodes::error) {
-			LOG("Received ERROR response!");
-		}
-		else if (_code == ResponseCodes::listUsers) {
-			LOG("Get clients response is success!");
-			size_t s_payload = response->getPayloadSize();
+		LOG("Get clients response is success!");
 
-			//We need to read s_payload
-			size_t payloadBytesRead = 0;
-			size_t s_users = 0;
+		//We need to read s_payload
+		size_t payloadBytesRead = 0;
+		size_t s_users = 0;
+		cout << endl;
+		while (payloadBytesRead < header.getPayloadSize()) {
+			s_users += 1;
+
+			Response_UsetList user = recvNextUserInList();
+			payloadBytesRead += sizeof(user);
+
+			LOG("User " << s_users << ": " << user.username);
+			LOG("Client ID:");
+			hexify((const unsigned char*)user.client_id, S_CLIENT_ID);
 			cout << endl;
-			while (payloadBytesRead < s_payload) {
-				s_users += 1;
-
-				//Receive next payload
-				char buffer[S_CLIENT_ID + S_USERNAME] = { 0 };
-				size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_CLIENT_ID + S_USERNAME));
-				DEBUG("Read " << bytes_recv << " bytes from payload.");
-				payloadBytesRead += bytes_recv;
-
-				//Read to buffers
-				BufferReader reader(buffer, S_CLIENT_ID + S_USERNAME);
-				char client_id[S_CLIENT_ID] = { 0 };
-				char username[S_USERNAME] = { 0 };
-				reader.read(S_CLIENT_ID, client_id, S_CLIENT_ID);
-				reader.read(S_USERNAME, username, S_USERNAME);
-
-				//Print buffers
-				LOG("User " << s_users << ": " << username);
-				LOG("Client ID:");
-				hexify((const unsigned char*)client_id, S_CLIENT_ID);
-				cout << endl;
-			}
-			LOG("Done listing " << s_users << " users.");
 		}
-		else {
-			string e = "Response code: " + code;
-			e += " is not recognized(invalid).";
-			throw string(e);
-		}
+		LOG("Done listing " << s_users << " users.");
 	}
 	catch (exception& e) {
-		LOG("Error: " << e.what());
+		LOG(e.what());
 	}
+
 }
 
-void Client::getPublicKey(char client_id[S_CLIENT_ID], char result_pub_key[S_PUBLIC_KEY]) {
+void Client::getPublicKey(ClientId client_id, PublicKey result_pub_key) {
 	LOG("Getting public key...");
 
+	//First, get my own client id
+	ClientId my_client_id = { 0 };
+	FileManager::getSavedClientId(my_client_id);
 
+	//Pack header
+	request.pack_clientId(my_client_id);
+	request.pack_version();
+	request.pack_code(RequestCodes::reqPublicKey);
+	request.pack_payloadSize(S_CLIENT_ID);
+	
+	//Pack payload
+	request.pack_clientId(my_client_id);
+
+	sendRequest();
+
+	//Get response
+	try {
+		ResponseHeader header = recvResponseHeader(ResponseCodes::publicKey);
+
+		ClientId clientId = { 0 };
+		recvClientId(clientId);
+	}
+	catch (exception& e) {
+		LOG(e.what());
+	}
+	
 }
 
+const char* Client::recvNextPayload(uint32_t amountRecvBytes) {
+	DEBUG("Receving payload...");
+	char* buffer = new char[amountRecvBytes];
+	memset(buffer, 0, amountRecvBytes);
+
+	size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, amountRecvBytes));
+	DEBUG("Received payload (" << bytes_recv << " bytes): ");
+#ifdef DEBUGGING
+	hexify((const unsigned char*)buffer, bytes_recv);
+#endif
+
+	if (bytes_recv != amountRecvBytes) {
+		LOG("ERROR: Requested to receive " << amountRecvBytes << " bytes, but got only " << bytes_recv << " bytes!");
+	}
+
+	return buffer;
+}
+
+Response_UsetList Client::recvNextUserInList() {
+	Response_UsetList result;
+
+	this->recvClientId(result.client_id);
+	this->recvUsername(result.username);
+
+	return result;
+}
+
+void Client::recvClientId(ClientId result) {
+	const char* clientId = recvNextPayload(S_CLIENT_ID);
+	memcpy(result, clientId, S_CLIENT_ID);
+	delete[] clientId;
+}
+
+void Client::recvUsername(Username result) {
+	const char* clientId = recvNextPayload(S_USERNAME);
+	memcpy(result, clientId, S_CLIENT_ID);
+	delete[] clientId;
+}

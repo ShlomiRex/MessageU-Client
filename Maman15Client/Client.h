@@ -48,18 +48,27 @@ private:
 	boost::asio::ip::tcp::resolver* resolver;
 	boost::asio::ip::tcp::resolver::results_type* endpoints;
 
+	//Sends this class's request object.
 	size_t sendRequest();
-	//Returns new Response object from server
-	//If 'with_payload' is false, recv only 7 bytes (header only).
-	//Else, recv S_PACKET_SIZE bytes.
-	Response* recvResponse(bool with_payload = true); 
+
+	//Receive response header (fixed size). 
+	ResponseHeader recvResponseHeader(ResponseCodes requiredCode);
+	
+	//General function to receive required amount of bytes in socket.
+	const char* recvNextPayload(uint32_t amountRecvBytes);
+
+	//Spesific recv functions
+	Response_UsetList recvNextUserInList();
+	void recvClientId(ClientId result);
+	void recvUsername(Username result);
 
 public:
-	Client(string ip, string port, uint8_t clientVersion = 1);
+	Client(string ip, string port, Version clientVersion = 1);
 	~Client();
+
 	void registerUser(string user);
 	void getClients();
-	void getPublicKey(char client_id[S_CLIENT_ID], char result_pub_key[S_PUBLIC_KEY]);
+	void getPublicKey(ClientId client_id, PublicKey result_pub_key);
 };
 
 

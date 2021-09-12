@@ -44,6 +44,9 @@ private:
 public:
 	BufferReader(const char* buffer, size_t bufferSize);
 
+	//To skip some bytes, you can add to offset.
+	void addOffset(size_t amount);
+
 	uint8_t read1byte();
 	uint16_t read2bytes();
 	uint32_t read4bytes();

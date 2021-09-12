@@ -5,21 +5,34 @@
 
 using namespace std;
 
-class Response
-{
+
+
+class ResponseHeader {
 private:
-	uint8_t version;
-	uint16_t code;
-	uint32_t payloadSize;
-	char* payload;
-
+	Version version;				//1 byte
+	Code code;						//2 bytes
+	PayloadSize payloadSize;		//4 bytes
 public:
-	Response(const char* buffer, size_t buffSize);
-	~Response();
+	ResponseHeader(const char* buffer, size_t buffSize);
 
-	uint8_t getVersion();
-	uint16_t getCode();
-	uint32_t getPayloadSize();
-	const char* getPayload();
+	Version getVersion();
+	Code getCode();
+	PayloadSize getPayloadSize();
 };
 
+struct Response_UsetList {
+	ClientId client_id;
+	Username username;
+};
+
+struct Response_PublicKey {
+
+};
+
+struct ResponseErrorException : public std::exception {
+
+};
+
+struct InvalidResponseCodeException : public std::exception {
+
+};
