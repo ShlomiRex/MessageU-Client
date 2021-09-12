@@ -94,8 +94,6 @@ void Client::registerUser(string username) {
 
 		file.close();
 		DEBUG("Done writing");
-
-		delete[] clientId;
 	}
 	catch (exception& e) {
 		LOG(e.what());
@@ -203,7 +201,7 @@ void Client::getPublicKey(ClientId client_id, PublicKey result_pub_key) {
 	request.pack_payloadSize(S_CLIENT_ID);
 	
 	//Pack payload
-	request.pack_clientId(my_client_id);
+	request.pack_clientId(client_id);
 
 	sendRequest();
 
@@ -212,7 +210,12 @@ void Client::getPublicKey(ClientId client_id, PublicKey result_pub_key) {
 		ResponseHeader header = recvResponseHeader(ResponseCodes::publicKey);
 
 		ClientId clientId = { 0 };
+		PublicKey pubKey = { 0 };
 		recvClientId(clientId);
+		recvPublicKey(pubKey);
+
+		LOG("Public key (" << S_PUBLIC_KEY << " bytes): ");
+		hexify((const unsigned char*)pubKey, S_PUBLIC_KEY);
 	}
 	catch (exception& e) {
 		LOG(e.what());
@@ -255,6 +258,12 @@ void Client::recvClientId(ClientId result) {
 
 void Client::recvUsername(Username result) {
 	const char* clientId = recvNextPayload(S_USERNAME);
-	memcpy(result, clientId, S_CLIENT_ID);
+	memcpy(result, clientId, S_USERNAME);
+	delete[] clientId;
+}
+
+void Client::recvPublicKey(PublicKey result) {
+	const char* clientId = recvNextPayload(S_PUBLIC_KEY);
+	memcpy(result, clientId, S_PUBLIC_KEY);
 	delete[] clientId;
 }

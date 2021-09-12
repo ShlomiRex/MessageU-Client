@@ -61,6 +61,7 @@ private:
 	Response_UsetList recvNextUserInList();
 	void recvClientId(ClientId result);
 	void recvUsername(Username result);
+	void recvPublicKey(PublicKey result);
 
 public:
 	Client(string ip, string port, Version clientVersion = 1);
