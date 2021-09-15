@@ -17,11 +17,15 @@ int main()
 	string ip = str_buff.substr(0, index);
 	string port = str_buff.substr(index + 1);
 
-	InteractiveMenu interactiveMenu;
+	//saved for other choices to use.
+
+	ClientId savedClientId = { 0 };
+	PublicKey savedPubKey = { 0 };
+	vector<User> savedUsers;
 
 	while (true) {
-		interactiveMenu.show_menu();
-		ClientChoices choice = interactiveMenu.get_choice();
+		InteractiveMenu::show_menu();
+		ClientChoices choice = InteractiveMenu::get_choice();
 
 		//If using database, client version is 2!
 		bool isUsingSQLDatabase = true; // TODO: Change?
@@ -29,21 +33,48 @@ int main()
 			Client client(ip, port, 1);
 
 			if (choice == ClientChoices::registerUser) {
-				string username = interactiveMenu.getUsernameForRegister();
+				string username = InteractiveMenu::readUsername();
+				client.connect();
 				client.registerUser(username);
 			}
 			else if (choice == ClientChoices::reqClientList) {
-				//TODO: Complete
-				client.getClients();
+				client.connect();
+				client.getClients(&savedUsers);
 			}
 			else if (choice == ClientChoices::exitProgram) {
 				break;
 			}
 			else if (choice == ClientChoices::reqPublicKey) {
-				ClientId client_id = { 0 };
-				interactiveMenu.getClientId(client_id);
-				PublicKey pub_key = { 0 };
-				client.getPublicKey(client_id, pub_key);
+				try {
+					InteractiveMenu::getClientId(savedClientId, &savedUsers);
+					client.connect();
+					client.getPublicKey(savedClientId);
+				}
+				catch (EmptyClientsList& e) {
+					LOG("You must first get clients list from server.");
+				}
+			}
+			else if (choice == ClientChoices::sendText) {
+				LOG("Not yet implimented");
+				/*
+				string username = InteractiveMenu::readUsername();
+				string text = InteractiveMenu::readText();
+
+				client.sendText(username, text);
+				*/
+			}
+			else if (choice == ClientChoices::sendReqSymmetricKey) {
+				try {
+					ClientId myClientId;
+					FileManager::getSavedClientId(myClientId);
+
+					InteractiveMenu::getClientId(savedClientId, &savedUsers);
+					client.connect();
+					client.getSymKey(myClientId, savedClientId);
+				}
+				catch (EmptyClientsList& e) {
+					LOG("You must first get clients list from server.");
+				}
 			}
 			else if (choice == ClientChoices::sendFile) {
 				//TODO: Impliment as bonous

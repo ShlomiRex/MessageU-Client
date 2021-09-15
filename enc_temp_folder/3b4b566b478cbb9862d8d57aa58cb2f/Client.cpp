@@ -373,6 +373,10 @@ void Client::getSymKey(ClientId my_clientId, ClientId dest_clientId) {
 	sendRequest();
 	//We can free payload memory, we don't use it anymore
 	delete[] payload;
+
+
+
+	LOG("test");
 }
 
 void Client::sendSymmetricKeyRequest(ClientId clientId) {

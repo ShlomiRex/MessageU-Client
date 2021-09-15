@@ -14,7 +14,6 @@
 #include <string>
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
-#include "OpCodes.h"
 #include "Base64Wrapper.h"
 #include "RSAWrapper.h"
 #include "AESWrapper.h"
@@ -26,6 +25,7 @@
 #include "Utils.h"
 #include <algorithm>
 #include "FileManager.h"
+#include "MessageRequest.h"
 #pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;
@@ -58,18 +58,25 @@ private:
 	const char* recvNextPayload(uint32_t amountRecvBytes);
 
 	//Spesific recv functions
-	Response_UsetList recvNextUserInList();
+	User recvNextUserInList();
 	void recvClientId(ClientId result);
 	void recvUsername(Username result);
 	void recvPublicKey(PublicKey result);
+
+	void sendSymmetricKeyRequest(ClientId clientId);
 
 public:
 	Client(string ip, string port, Version clientVersion = 1);
 	~Client();
 
+	void connect();
+
 	void registerUser(string user);
-	void getClients();
-	void getPublicKey(ClientId client_id, PublicKey result_pub_key);
+	void getClients(vector<User>* result);
+	void getPublicKey(ClientId client_id);
+	void getSymKey(ClientId my_clientId, ClientId clientId);
+	void sendText(string username, string text);
+
 };
 
 

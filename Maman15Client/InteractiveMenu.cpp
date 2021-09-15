@@ -4,9 +4,13 @@
 
 using namespace std;
 
-InteractiveMenu::InteractiveMenu() {
-
-}
+//#define DEBUGGING
+#ifdef DEBUGGING
+	#define DEBUG(msg) cout << "[Debug] [Menu] " << msg << endl;
+#endif // DEBUG
+#ifndef DEBUGGING
+	#define DEBUG(msg) 
+#endif
 
 void InteractiveMenu::show_menu() {
 	LOG("MessageU client at your service.\n");
@@ -60,10 +64,10 @@ ClientChoices InteractiveMenu::get_choice() {
 	}
 }
 
-string InteractiveMenu::getUsernameForRegister() {
+string InteractiveMenu::readUsername() {
 	string username = "";
 	while (true) {
-		LOG("Please type desired username for registeration. (non-empty and maximum " << S_USERNAME << " characters)");
+		LOG("Please type desired username (non-empty and maximum " << S_USERNAME << " characters): ");
 		getline(cin, username); //for now, allow any string as username. if server is not happy we get error response anyway.
 		if (username.size() >= 1 && username.size() <= S_USERNAME)
 			break;
@@ -71,15 +75,60 @@ string InteractiveMenu::getUsernameForRegister() {
 	return username;
 }
 
-void InteractiveMenu::getClientId(ClientId buffer)
+void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices)
 {
-	LOG("Please type client id (in hex, 16 bytes, for example: '66 c1 81 ...'):");
+	//Check saved clients vector
+	if (possibleChoices->size() == 0) {
+		throw EmptyClientsList();
+	}
+
+	LOG("I need to know the client ID.");
+	LOG("Please type username(e.g. 'Shlomi'), user number(e.g. '1'), or client id (in hex, 16 bytes, e.g. '66 c1 81 ...'): ");
 	string line;
 
 	while (true) {
 		getline(cin, line);
 
+		//Try number
 		try {
+			DEBUG("Trying to parse input as user number");
+			int user_number = stoi(line);
+			for (int i = 0; i < possibleChoices->size(); i++) {
+				if (user_number == (i + 1)) {
+					auto x = possibleChoices->at(i);
+					LOG("You chose user number: " << user_number << " with username: " << x.username);
+					auto found = possibleChoices->at(i).client_id;
+					memcpy(result, found, S_CLIENT_ID);
+					return;
+				}
+			}
+			LOG("Please type valid user number from client list.");
+			continue;
+		}
+		catch (exception& e) {
+			DEBUG("Couldn't parse input to number.");
+		}
+
+		//Try username
+		try {
+			DEBUG("Trying to parse input as username");
+			for (auto x : *possibleChoices) {
+				string username = x.username;
+				if (username == line) {
+					LOG("You chose username: " << x.username);
+					memcpy(result, x.client_id, S_CLIENT_ID);
+					return;
+				}
+			}
+			DEBUG("Couldn't find username in vector.")
+		}
+		catch (exception& e) {
+			DEBUG("Couldn't parse input as username");
+		}
+
+		//Try hex
+		try {
+			DEBUG("Trying to parse input as hex");
 			//Remove all spaces
 			line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
 			
@@ -88,8 +137,17 @@ void InteractiveMenu::getClientId(ClientId buffer)
 				//Check hex conversion (for example, 'G' letter is not hex. Or any other character like '/'.)
 				try {
 					string unhex = boost::algorithm::unhex(line);
-					std::copy(unhex.begin(), unhex.end(), buffer);
-					break;
+
+					for (auto x : *possibleChoices) {
+						//TODO: Compare client id in possible choices to input
+						string client_id_str = x.client_id;
+						if (client_id_str == unhex) {
+							std::copy(unhex.begin(), unhex.end(), result);
+							return;
+						}
+					}
+
+					DEBUG("Could not find clientId in the clients list.");
 				}
 				catch (exception& e) {
 					LOG(e.what());
@@ -108,4 +166,15 @@ void InteractiveMenu::getClientId(ClientId buffer)
 
 
 
+}
+
+string InteractiveMenu::readText() {
+	string text = "";
+	while (true) {
+		LOG("Please type desired text (at least 1 character):");
+		getline(cin, text); 
+		if (text.size() >= 1)
+			break;
+	}
+	return text;
 }

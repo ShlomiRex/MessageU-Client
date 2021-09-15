@@ -20,14 +20,7 @@ public:
 	PayloadSize getPayloadSize();
 };
 
-struct Response_UsetList {
-	ClientId client_id;
-	Username username;
-};
 
-struct Response_PublicKey {
-
-};
 
 struct ResponseErrorException : public std::exception {
 

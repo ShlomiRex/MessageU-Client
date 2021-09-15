@@ -72,6 +72,9 @@
     <ClCompile Include="FileManager.cpp">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="MessageRequest.cpp">
+      <Filter>Source Files\Client</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ProtocolDefenitions.h">
@@ -110,7 +113,7 @@
     <ClInclude Include="MenuDefenitions.h">
       <Filter>Header Files\Menu</Filter>
     </ClInclude>
-    <ClInclude Include="OpCodes.h">
+    <ClInclude Include="MessageRequest.h">
       <Filter>Header Files\Client</Filter>
     </ClInclude>
   </ItemGroup>

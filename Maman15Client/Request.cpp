@@ -88,3 +88,15 @@ size_t Request::getPacketSize() {
 const char* Request::getPacket() {
 	return writer.getBuffer();
 }
+
+void Request::pack_message_type(MessageTypes type) {
+	//Convert enum type to required size
+	MessageType _type = (MessageType)type;
+	DEBUG("Packing message type (1 bytes): " << _type);
+	writer.write1byte(_type);
+}
+
+void Request::pack_content_size(ContentSize size) {
+	DEBUG("Packing content size (4 bytes): " << size);
+	writer.write4bytes(size);
+}

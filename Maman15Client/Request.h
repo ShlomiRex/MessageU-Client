@@ -4,7 +4,7 @@
 #include "BufferUtils.h"
 #include "ProtocolDefenitions.h"
 #include "Utils.h"
-#include "OpCodes.h"
+
 
 class Request {
 private:
@@ -14,6 +14,7 @@ public:
 	Request(Version clientVersion);
 	~Request();
 
+	//Common header fields
 	void pack_clientId(const ClientId client_id);
 	void pack_version();
 	void pack_code(RequestCodes code);
@@ -26,6 +27,10 @@ public:
 	void pack_username(std::string username);				//username size can be any size. This function will right pad with zeros.
 	void pack_pub_key(const PublicKey pubkey);
 	void pack_client_id(const ClientId client_id);
+
+	//Message packing
+	void pack_message_type(MessageTypes type);
+	void pack_content_size(ContentSize size);
 
 	size_t getPacketSize();
 	const char* getPacket();

@@ -11,7 +11,7 @@ class FileManager
 {
 public:
 	static void getSavedClientId(ClientId buffer);
-	std::string getSavedUsername();
-	const char* getSavedPrivateKey();
+	static std::string getSavedUsername();
+	static const char* getSavedPrivateKey();
 };
 
