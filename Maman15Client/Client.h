@@ -63,6 +63,8 @@ private:
 	void recvUsername(Username result);
 	void recvPublicKey(PublicKey result);
 	MessageId recvMessageId();
+	MessageType recvMessageType();
+	MessageSize recvMessageSize();
 
 	void sendSymmetricKeyRequest(ClientId clientId);
 
@@ -76,6 +78,8 @@ public:
 	void getClients(vector<User>* result);
 	void getPublicKey(ClientId client_id);
 	void getSymKey(ClientId my_clientId, ClientId clientId);
+	void pullMessages(ClientId client_id, vector<User>& savedUsers);
+
 	void sendText(string username, string text);
 
 };

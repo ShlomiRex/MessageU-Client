@@ -20,7 +20,7 @@ enum class RequestCodes {
 	reqClientList = 1001,
 	reqPublicKey = 1002,
 	sendText = 1003,
-	reqWaitingMessages = 1004
+	reqPullWaitingMessages = 1004
 };
 
 enum class ResponseCodes {
@@ -53,11 +53,15 @@ typedef uint32_t PayloadSize;
 typedef char Username[S_USERNAME];
 typedef char PublicKey[S_PUBLIC_KEY];
 
-//Message header fields
-typedef uint32_t ContentSize;
+//Message (Request + Response) header fields
 typedef uint8_t MessageType;
-typedef uint32_t MessageId;
 
+//Message Request header fields
+typedef uint32_t ContentSize;
+
+//Message Response header fields
+typedef uint32_t MessageId;
+typedef uint32_t MessageSize;
 
 typedef struct {
 	ClientId client_id;

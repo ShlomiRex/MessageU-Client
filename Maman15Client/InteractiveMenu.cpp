@@ -25,7 +25,7 @@ void InteractiveMenu::show_menu() {
 	LOG("0) Exit client");
 }
 
-ClientChoices InteractiveMenu::get_choice() {
+Menu::ClientChoices InteractiveMenu::get_choice() {
 	string line;
 
 	while (true) {
@@ -37,21 +37,21 @@ ClientChoices InteractiveMenu::get_choice() {
 			}
 			switch (__choice) {
 			case 10:
-				return ClientChoices::registerUser;
+				return Menu::ClientChoices::registerUser;
 			case 20:
-				return ClientChoices::reqClientList;
+				return Menu::ClientChoices::reqClientList;
 			case 30:
-				return ClientChoices::reqPublicKey;
+				return Menu::ClientChoices::reqPublicKey;
 			case 40:
-				return ClientChoices::reqWaitingMessages;
+				return Menu::ClientChoices::reqPullWaitingMessages;
 			case 50:
-				return ClientChoices::sendText;
+				return Menu::ClientChoices::sendText;
 			case 51:
-				return ClientChoices::sendReqSymmetricKey;
+				return Menu::ClientChoices::sendReqSymmetricKey;
 			case 52:
-				return ClientChoices::sendSymmetricKey;
+				return Menu::ClientChoices::sendSymmetricKey;
 			case 0:
-				return ClientChoices::exitProgram;
+				return Menu::ClientChoices::exitProgram;
 			default:
 				throw invalid_argument("No such choice.");
 			}
@@ -155,7 +155,7 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 				}
 			}
 			else {
-				LOG("Please type valid 16 bytes hex.");
+				LOG("Please type valid username, user number or 16 bytes hex.");
 			}
 		}
 		catch (exception& e) {
@@ -163,9 +163,6 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 			LOG("Couldn't remove spaces from the input. Please try again.")
 		}
 	}
-
-
-
 }
 
 string InteractiveMenu::readText() {

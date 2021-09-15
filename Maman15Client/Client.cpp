@@ -63,8 +63,6 @@ void Client::registerUser(string username) {
 	try {
 		ResponseHeader header = recvResponseHeader(ResponseCodes::registerSuccess);
 
-		//const char* dest_clientId = recvNextPayload(header.getPayloadSize());
-
 		ClientId clientId;
 		recvClientId(clientId);
 
@@ -120,6 +118,9 @@ ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 	hexify((const unsigned char*)payload, S_RESPONSE_HEADER);
 #endif
 	ResponseHeader header(payload, S_RESPONSE_HEADER);
+
+	//It's fine to free memory, header copied.
+	delete[] payload;
 
 	//Parse code
 	ResponseCodes _code = static_cast<ResponseCodes>(header.getCode());
@@ -207,6 +208,7 @@ void Client::getPublicKey(ClientId client_id) {
 	//Pack payload
 	request.pack_clientId(client_id);
 
+	//Send request
 	sendRequest();
 
 	//Get response
@@ -218,7 +220,6 @@ void Client::getPublicKey(ClientId client_id) {
 		recvClientId(clientId);
 		recvPublicKey(pubKey);
 
-		LOG("Got response:");
 		LOG("Client ID: ");
 		hexify((const unsigned char*)clientId, S_CLIENT_ID);
 		LOG("Public key (" << S_PUBLIC_KEY << " bytes): ");
@@ -231,6 +232,9 @@ void Client::getPublicKey(ClientId client_id) {
 }
 
 const char* Client::recvNextPayload(uint32_t amountRecvBytes) {
+	if (amountRecvBytes == 0)
+		return nullptr;
+
 	DEBUG("Receving payload...");
 	char* buffer = new char[amountRecvBytes];
 	memset(buffer, 0, amountRecvBytes);
@@ -258,28 +262,45 @@ User Client::recvNextUserInList() {
 }
 
 void Client::recvClientId(ClientId result) {
-	const char* clientId = recvNextPayload(S_CLIENT_ID);
-	memcpy(result, clientId, S_CLIENT_ID);
-	delete[] clientId;
+	const char* payload = recvNextPayload(S_CLIENT_ID);
+	memcpy(result, payload, S_CLIENT_ID);
+	delete[] payload;
 }
 
 void Client::recvUsername(Username result) {
-	const char* clientId = recvNextPayload(S_USERNAME);
-	memcpy(result, clientId, S_USERNAME);
-	delete[] clientId;
+	const char* payload = recvNextPayload(S_USERNAME);
+	memcpy(result, payload, S_USERNAME);
+	delete[] payload;
 }
 
 void Client::recvPublicKey(PublicKey result) {
-	const char* clientId = recvNextPayload(S_PUBLIC_KEY);
-	memcpy(result, clientId, S_PUBLIC_KEY);
-	delete[] clientId;
+	const char* payload = recvNextPayload(S_PUBLIC_KEY);
+	memcpy(result, payload, S_PUBLIC_KEY);
+	delete[] payload;
 }
 
 MessageId Client::recvMessageId() {
-	const char* msgId = recvNextPayload(sizeof(MessageId));
-	BufferReader reader(msgId, sizeof(MessageId));
+	const char* payload = recvNextPayload(sizeof(MessageId));
+	BufferReader reader(payload, sizeof(MessageId));
 	MessageId result = reader.read4bytes();
+	delete[] payload;
 	return result;
+}
+
+MessageType Client::recvMessageType() {
+	const char* payload = recvNextPayload(sizeof(MessageType));
+	BufferReader reader(payload, sizeof(MessageType));
+	MessageType msgType = reader.read1byte();
+	delete[] payload;
+	return msgType;
+}
+
+MessageSize Client::recvMessageSize() {
+	const char* payload = recvNextPayload(sizeof(MessageSize));
+	BufferReader reader(payload, sizeof(MessageSize));
+	MessageSize msgSize = reader.read4bytes();
+	delete[] payload;
+	return msgSize;
 }
 
 void Client::sendText(string username, string text) {
@@ -386,7 +407,6 @@ void Client::getSymKey(ClientId my_clientId, ClientId dest_clientId) {
 
 	//Get respose from server
 	ResponseHeader header = recvResponseHeader(ResponseCodes::messageSent);
-	
 	ClientId response_dest_client_id;
 	recvClientId(response_dest_client_id);
 	MessageId messageId = recvMessageId();
@@ -394,8 +414,102 @@ void Client::getSymKey(ClientId my_clientId, ClientId dest_clientId) {
 	LOG("Response from server is success! Client destination: ");
 	hexify((const unsigned char*)response_dest_client_id, S_CLIENT_ID);
 	LOG("And message ID: " << messageId);
+}
 
-	LOG("Finished handling get symmetric key request.");
+void Client::pullMessages(ClientId client_id, vector<User>& savedUsers) {
+	LOG("Pulling waiting messages...");
+
+	//Request Header
+	request.pack_clientId(client_id);
+	request.pack_version();
+	request.pack_code(RequestCodes::reqPullWaitingMessages);
+	request.pack_payloadSize(0);
+
+	//Send request
+	sendRequest();
+
+	//Get waiting messages
+	try {
+		ResponseHeader header = recvResponseHeader(ResponseCodes::pullWaitingMessages);
+		PayloadSize payloadSize = header.getPayloadSize();
+		PayloadSize pSize = payloadSize;
+		size_t message_num = 0;
+		
+		if (payloadSize == 0) {
+			LOG("No messages waiting for you, sir!");
+			return;
+		}
+
+		while (pSize > 0) {
+			//Get single message (response from server)
+			//Each receive, we substract amount of bytes left to read.
+
+			message_num += 1;
+
+			ClientId msg_clientId;
+			recvClientId(msg_clientId);
+			pSize -= sizeof(ClientId);
+
+			MessageId msg_msgId = recvMessageId();
+			pSize -= sizeof(MessageId);
+
+			MessageType msg_msgType = recvMessageType();
+			pSize -= sizeof(MessageType);
+
+			MessageSize msg_msgSize = recvMessageSize();
+			pSize -= sizeof(MessageSize);
+
+			const char* content = recvNextPayload(msg_msgSize);
+			pSize -= msg_msgSize;
+
+			//Get username by message sender client id
+			string username;
+			for (auto x : savedUsers) {
+				int res = strncmp(msg_clientId, x.client_id, S_CLIENT_ID);
+				if (res == 0) {
+					username = x.username;
+					break;
+				}
+			}
+			if (username.size() == 0) {
+				LOG("ERROR: Couldn't map username to client id: ");
+				hexify((const unsigned char*)msg_clientId, S_CLIENT_ID);
+				throw exception("Couldn't convert client id to username, in order to display the message.");
+			}
+
+			//Print message
+			cout << endl;
+			cout << "From: " << username << endl;
+			cout << "Content: " << endl;
+
+			//Check type of message, and display diffirent contents based on that.
+			MessageTypes _msg_msgType_enum = MessageTypes(msg_msgType);
+			if (_msg_msgType_enum == MessageTypes::reqSymmetricKey) {
+				cout << "Request for symmetric key" << endl;
+			}
+			else if (_msg_msgType_enum == MessageTypes::sendSymmetricKey) {
+				cout << "Symmetric key received" << endl;
+			}
+			else if (_msg_msgType_enum == MessageTypes::sendText) {
+				//TODO: Decrypt
+			}
+			else {
+				LOG("ERROR: Message type: " << (int)msg_msgType << " is not recognized.");
+				throw exception("Message type invalid.");
+			}
+
+			//Finish content
+			cout << "----<EOM>-----\n" << endl;
+
+			//Cleanup
+			if (content != nullptr)
+				delete[] content;
+
+		}
+	}
+	catch (exception& e) {
+		LOG("ERROR: " << e.what());
+	}
 }
 
 void Client::sendSymmetricKeyRequest(ClientId clientId) {
@@ -405,7 +519,7 @@ void Client::sendSymmetricKeyRequest(ClientId clientId) {
 }
 
 void Client::connect() {
-	LOG("Connecting to server...");
+	DEBUG("Connecting to server...");
 	boost::asio::connect(*socket, *endpoints);
-	LOG("Connected!");
+	DEBUG("Connected!");
 }

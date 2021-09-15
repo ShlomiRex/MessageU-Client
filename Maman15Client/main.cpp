@@ -25,26 +25,26 @@ int main()
 
 	while (true) {
 		InteractiveMenu::show_menu();
-		ClientChoices choice = InteractiveMenu::get_choice();
+		Menu::ClientChoices choice = InteractiveMenu::get_choice();
 
 		//If using database, client version is 2!
 		bool isUsingSQLDatabase = true; // TODO: Change?
 		try {
 			Client client(ip, port, 1);
 
-			if (choice == ClientChoices::registerUser) {
+			if (choice == Menu::ClientChoices::registerUser) {
 				string username = InteractiveMenu::readUsername();
 				client.connect();
 				client.registerUser(username);
 			}
-			else if (choice == ClientChoices::reqClientList) {
+			else if (choice == Menu::ClientChoices::reqClientList) {
 				client.connect();
 				client.getClients(&savedUsers);
 			}
-			else if (choice == ClientChoices::exitProgram) {
+			else if (choice == Menu::ClientChoices::exitProgram) {
 				break;
 			}
-			else if (choice == ClientChoices::reqPublicKey) {
+			else if (choice == Menu::ClientChoices::reqPublicKey) {
 				try {
 					InteractiveMenu::getClientId(savedClientId, &savedUsers);
 					client.connect();
@@ -54,7 +54,7 @@ int main()
 					LOG("You must first get clients list from server.");
 				}
 			}
-			else if (choice == ClientChoices::sendText) {
+			else if (choice == Menu::ClientChoices::sendText) {
 				LOG("Not yet implimented");
 				/*
 				string username = InteractiveMenu::readUsername();
@@ -63,7 +63,7 @@ int main()
 				client.sendText(username, text);
 				*/
 			}
-			else if (choice == ClientChoices::sendReqSymmetricKey) {
+			else if (choice == Menu::ClientChoices::sendReqSymmetricKey) {
 				try {
 					ClientId myClientId;
 					FileManager::getSavedClientId(myClientId);
@@ -76,8 +76,20 @@ int main()
 					LOG("You must first get clients list from server.");
 				}
 			}
-			else if (choice == ClientChoices::sendFile) {
+			else if (choice == Menu::ClientChoices::sendFile) {
 				//TODO: Impliment as bonous
+			}
+			else if (choice == Menu::ClientChoices::reqPullWaitingMessages) {
+				if (savedUsers.size() == 0) {
+					LOG("You must first get clients list from server.");
+				}
+				else {
+					ClientId myClientId;
+					FileManager::getSavedClientId(myClientId);
+
+					client.connect();
+					client.pullMessages(myClientId, savedUsers);
+				}
 			}
 			else {
 				LOG("Not yet implimented");
