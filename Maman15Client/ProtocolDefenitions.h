@@ -56,6 +56,7 @@ typedef char PublicKey[S_PUBLIC_KEY];
 //Message header fields
 typedef uint32_t ContentSize;
 typedef uint8_t MessageType;
+typedef uint32_t MessageId;
 
 
 typedef struct {

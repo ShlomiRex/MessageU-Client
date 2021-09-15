@@ -62,6 +62,7 @@ private:
 	void recvClientId(ClientId result);
 	void recvUsername(Username result);
 	void recvPublicKey(PublicKey result);
+	MessageId recvMessageId();
 
 	void sendSymmetricKeyRequest(ClientId clientId);
 

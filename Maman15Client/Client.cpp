@@ -128,6 +128,9 @@ ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 		throw ResponseErrorException();
 	}
 	else if (_code != requiredCode) {
+		int req = static_cast<int>(requiredCode);
+		int got = static_cast<int>(header.getCode());
+		LOG("ERROR: Invalid response code. Expected code: " << req << " but response code is: " << got);
 		throw InvalidResponseCodeException();
 	}
 
@@ -272,6 +275,13 @@ void Client::recvPublicKey(PublicKey result) {
 	delete[] clientId;
 }
 
+MessageId Client::recvMessageId() {
+	const char* msgId = recvNextPayload(sizeof(MessageId));
+	BufferReader reader(msgId, sizeof(MessageId));
+	MessageId result = reader.read4bytes();
+	return result;
+}
+
 void Client::sendText(string username, string text) {
 	LOG("Handling send text request...");
 
@@ -373,6 +383,19 @@ void Client::getSymKey(ClientId my_clientId, ClientId dest_clientId) {
 	sendRequest();
 	//We can free payload memory, we don't use it anymore
 	delete[] payload;
+
+	//Get respose from server
+	ResponseHeader header = recvResponseHeader(ResponseCodes::messageSent);
+	
+	ClientId response_dest_client_id;
+	recvClientId(response_dest_client_id);
+	MessageId messageId = recvMessageId();
+
+	LOG("Response from server is success! Client destination: ");
+	hexify((const unsigned char*)response_dest_client_id, S_CLIENT_ID);
+	LOG("And message ID: " << messageId);
+
+	LOG("Finished handling get symmetric key request.");
 }
 
 void Client::sendSymmetricKeyRequest(ClientId clientId) {

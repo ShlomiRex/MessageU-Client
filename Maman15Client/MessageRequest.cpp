@@ -2,7 +2,7 @@
 
 using namespace std;
 
-#define DEBUGGING
+//#define DEBUGGING
 #ifdef DEBUGGING
 #define DEBUG(msg) cout << "[Debug] [MessageRequest] " << msg << endl;
 #endif // DEBUG
