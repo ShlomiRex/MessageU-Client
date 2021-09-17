@@ -4,6 +4,7 @@
 #include "BufferUtils.h"
 #include <iostream>
 #include "Utils.h"
+#include "Debug.h"
 
 //Packed size
 #define S_MESSAGE_HEADER 21

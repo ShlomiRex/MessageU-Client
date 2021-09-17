@@ -26,6 +26,7 @@
 #include <algorithm>
 #include "FileManager.h"
 #include "MessageRequest.h"
+#include "Debug.h"
 #pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;

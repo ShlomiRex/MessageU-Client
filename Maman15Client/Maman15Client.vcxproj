@@ -160,6 +160,7 @@
     <ClInclude Include="AESWrapper.h" />
     <ClInclude Include="Base64Wrapper.h" />
     <ClInclude Include="BufferUtils.h" />
+    <ClInclude Include="Debug.h" />
     <ClInclude Include="FileManager.h" />
     <ClInclude Include="MenuDefenitions.h" />
     <ClInclude Include="MessageRequest.h" />

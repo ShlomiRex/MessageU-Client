@@ -1,17 +1,8 @@
 #include "Request.h"
 
+#define DEBUG_PREFIX "[Request] "
+
 using namespace std;
-
-
-#define LOG(msg) cout << "[Request] " << msg << endl;
-
-//#define DEBUGGING
-#ifdef DEBUGGING
-	#define DEBUG(msg) cout << "[Debug] [Request] " << msg << endl;
-#endif
-#ifndef DEBUGGING
-	#define DEBUG(msg)
-#endif
 
 Request::Request(Version version) : clientVersion(version), writer(S_PACKET_SIZE) {
 	

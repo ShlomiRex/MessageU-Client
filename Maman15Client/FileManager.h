@@ -6,6 +6,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/hex.hpp>
+#include "Debug.h"
 
 class FileManager
 {

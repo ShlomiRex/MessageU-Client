@@ -5,6 +5,7 @@
 #include <boost/algorithm/hex.hpp>
 #include "MenuDefenitions.h"
 #include <vector>
+#include "Debug.h"
 
 using namespace std;
 

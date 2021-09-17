@@ -1,16 +1,8 @@
 #include "MessageRequest.h"
 
+#define DEBUG_PREFIX "[MessageRequest] "
+
 using namespace std;
-
-//#define DEBUGGING
-#ifdef DEBUGGING
-#define DEBUG(msg) cout << "[Debug] [MessageRequest] " << msg << endl;
-#endif // DEBUG
-#ifndef DEBUGGING
-#define DEBUG(msg) 
-#endif
-
-#define LOG(msg) cout << "[MessageRequest] " << msg << endl;
 
 MessageRequest::MessageRequest(MessageHeader header) : header(header), messageContent(nullptr) {
 

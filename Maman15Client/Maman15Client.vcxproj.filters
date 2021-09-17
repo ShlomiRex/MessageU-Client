@@ -116,5 +116,8 @@
     <ClInclude Include="MessageRequest.h">
       <Filter>Header Files\Client</Filter>
     </ClInclude>
+    <ClInclude Include="Debug.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

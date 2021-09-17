@@ -1,16 +1,6 @@
 #include "InteractiveMenu.h"
 
-#define LOG(msg) cout << msg << endl;
-
 using namespace std;
-
-//#define DEBUGGING
-#ifdef DEBUGGING
-	#define DEBUG(msg) cout << "[Debug] [Menu] " << msg << endl;
-#endif // DEBUG
-#ifndef DEBUGGING
-	#define DEBUG(msg) 
-#endif
 
 void InteractiveMenu::show_menu() {
 	LOG("MessageU client at your service.\n");

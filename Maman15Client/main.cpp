@@ -2,23 +2,33 @@
 #include "InteractiveMenu.h"
 #include <boost/filesystem/operations.hpp>
 #include "MenuDefenitions.h"
+#include "Debug.h"
+
+#define DEBUG_PREFIX "[main] "
 
 using namespace std;
-#define LOG(msg) cout << "[main] " << msg << endl;
 
 int main()
 {
+	DEBUG("Reading from " << FILE_SERVER);
 	ifstream server_info(FILE_SERVER);
-	char buff[1024] = { 0 };
-	server_info.read(buff, 1024);
+	char buff[S_FILE_SERVER] = { 0 };
+	server_info.read(buff, S_FILE_SERVER);
 	string str_buff = buff;
 	size_t index = str_buff.find(':');
 
 	string ip = str_buff.substr(0, index);
 	string port = str_buff.substr(index + 1);
 
-	//saved for other choices to use.
+	if (ip.size() == 0 && port.size() == 0) {
+		LOG("ERROR: IP or port is empty. Check " << FILE_SERVER);
+		return -1;
+	}
 
+	DEBUG("IP: " << ip);
+	DEBUG("Port: " << port);
+
+	//Interactive menu sets these variables. Saved for other choices to use. 
 	ClientId savedClientId = { 0 };
 	PublicKey savedPubKey = { 0 };
 	vector<User> savedUsers;

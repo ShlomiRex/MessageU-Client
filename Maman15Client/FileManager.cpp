@@ -1,8 +1,11 @@
 #include "FileManager.h"
 
+#define DEBUG_PREFIX "[FileManager] "
+
 using namespace std;
 
 void FileManager::getSavedClientId(ClientId buffer) {
+	DEBUG("Getting my own client id, reading from file: " << FILE_REGISTER);
 	ifstream file(FILE_REGISTER);
 
 	string line1, line2;

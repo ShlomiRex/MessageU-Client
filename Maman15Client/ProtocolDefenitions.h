@@ -42,6 +42,7 @@ enum class MessageTypes {
 //Implicit defenitions - not explicitly stated in the protocol defenition
 //====================================================================================
 #define S_FILE_REGISTER		2048U			//Maximum private key size, for buffering
+#define S_FILE_SERVER		2048U			//Maximum file size
 
 //Types
 //====================================================================================

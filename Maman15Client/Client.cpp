@@ -2,15 +2,7 @@
 
 using namespace std;
 
-//#define DEBUGGING
-#ifdef DEBUGGING
-	#define DEBUG(msg) cout << "[Debug] [Client] " << msg << endl;
-#endif // DEBUG
-#ifndef DEBUGGING
-	#define DEBUG(msg) 
-#endif
-
-#define LOG(msg) cout << "[Client] " << msg << endl;
+#define DEBUG_PREFIX "[Client] "
 
 Client::Client(string ip, string port, Version clientVersion) : request(clientVersion) {
 	//Initialize all internal fields and connect to server.
@@ -114,9 +106,6 @@ ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 
 	const char* payload = recvNextPayload(S_RESPONSE_HEADER);
 
-#ifdef DEBUGGING
-	hexify((const unsigned char*)payload, S_RESPONSE_HEADER);
-#endif
 	ResponseHeader header(payload, S_RESPONSE_HEADER);
 
 	//It's fine to free memory, header copied.
@@ -125,14 +114,12 @@ ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 	//Parse code
 	ResponseCodes _code = static_cast<ResponseCodes>(header.getCode());
 	if (_code == ResponseCodes::error) {
-		LOG("Received ERROR response!");
 		throw ResponseErrorException();
 	}
 	else if (_code != requiredCode) {
 		int req = static_cast<int>(requiredCode);
 		int got = static_cast<int>(header.getCode());
-		LOG("ERROR: Invalid response code. Expected code: " << req << " but response code is: " << got);
-		throw InvalidResponseCodeException();
+		throw InvalidResponseCodeException(req, got);
 	}
 
 	return header;
@@ -459,8 +446,7 @@ void Client::pullMessages(ClientId client_id, vector<User>& savedUsers) {
 			MessageSize msg_msgSize = recvMessageSize();
 			pSize -= sizeof(MessageSize);
 
-			const char* content = recvNextPayload(msg_msgSize);
-			pSize -= msg_msgSize;
+
 
 			//Get username by message sender client id
 			string username;
@@ -492,6 +478,26 @@ void Client::pullMessages(ClientId client_id, vector<User>& savedUsers) {
 			}
 			else if (_msg_msgType_enum == MessageTypes::sendText) {
 				//TODO: Decrypt
+				size_t msg_bytes_left = msg_msgSize;
+				while (msg_bytes_left > 0) {
+					//If we can read more than 1 packet
+					if (msg_bytes_left > S_PACKET_SIZE) {
+						const char* content = recvNextPayload(S_PACKET_SIZE);
+						pSize -= S_PACKET_SIZE;
+
+						//TODO: Decrypt
+
+						delete[] content;
+					}
+					else {
+						const char* content = recvNextPayload(msg_bytes_left);
+						pSize -= msg_bytes_left;
+
+						//TODO: Decrypt
+
+						delete[] content;
+					}
+				}
 			}
 			else {
 				LOG("ERROR: Message type: " << (int)msg_msgType << " is not recognized.");
@@ -500,11 +506,6 @@ void Client::pullMessages(ClientId client_id, vector<User>& savedUsers) {
 
 			//Finish content
 			cout << "----<EOM>-----\n" << endl;
-
-			//Cleanup
-			if (content != nullptr)
-				delete[] content;
-
 		}
 	}
 	catch (exception& e) {
