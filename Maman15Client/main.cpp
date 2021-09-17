@@ -29,12 +29,17 @@ int main()
 	DEBUG("Port: " << port);
 
 	//Interactive menu sets these variables. Saved for other choices to use. 
-	ClientId savedClientId = { 0 };
-	PublicKey savedPubKey = { 0 };
+
+	//My 'me.info' stuff
+	ClientId myClientId;
+	FileManager::getSavedClientId(myClientId);
+	string myUsername = FileManager::getSavedUsername(); //Username helps identify (for debugging and also its nice) who I am, what username I currently use.
+
+	//Saved users is set when client requests get clients from server.
 	vector<User> savedUsers;
 
 	while (true) {
-		InteractiveMenu::show_menu();
+		InteractiveMenu::show_menu(myUsername);
 		Menu::ClientChoices choice = InteractiveMenu::get_choice();
 
 		//If using database, client version is 2!
@@ -43,24 +48,21 @@ int main()
 			Client client(ip, port, 1);
 
 			if (choice == Menu::ClientChoices::registerUser) {
-				string username = InteractiveMenu::readUsername();
+				myUsername = InteractiveMenu::readUsername();
 				client.connect();
-				client.registerUser(username);
+				client.registerUser(myUsername);
 			}
 			else if (choice == Menu::ClientChoices::reqClientList) {
 				client.connect();
 				client.getClients(&savedUsers);
 			}
-			else if (choice == Menu::ClientChoices::exitProgram) {
-				break;
-			}
 			else if (choice == Menu::ClientChoices::reqPublicKey) {
 				try {
-					InteractiveMenu::getClientId(savedClientId, &savedUsers);
+					InteractiveMenu::getClientId(myClientId, &savedUsers);
 					client.connect();
-					client.getPublicKey(savedClientId);
+					client.getPublicKey(myClientId);
 				}
-				catch (EmptyClientsList& e) {
+				catch (EmptyClientsList) {
 					LOG("You must first get clients list from server.");
 				}
 			}
@@ -75,14 +77,13 @@ int main()
 			}
 			else if (choice == Menu::ClientChoices::sendReqSymmetricKey) {
 				try {
-					ClientId myClientId;
 					FileManager::getSavedClientId(myClientId);
 
-					InteractiveMenu::getClientId(savedClientId, &savedUsers);
+					InteractiveMenu::getClientId(myClientId, &savedUsers);
 					client.connect();
-					client.getSymKey(myClientId, savedClientId);
+					client.getSymKey(myClientId, myClientId);
 				}
-				catch (EmptyClientsList& e) {
+				catch (EmptyClientsList) {
 					LOG("You must first get clients list from server.");
 				}
 			}
@@ -91,18 +92,24 @@ int main()
 			}
 			else if (choice == Menu::ClientChoices::reqPullWaitingMessages) {
 				if (savedUsers.size() == 0) {
-					LOG("You must first get clients list from server.");
+					LOG("You must first get clients list from server (in order to map usernames to client id's.");
 				}
 				else {
-					ClientId myClientId;
 					FileManager::getSavedClientId(myClientId);
 
 					client.connect();
 					client.pullMessages(myClientId, savedUsers);
 				}
 			}
+			else if (choice == Menu::ClientChoices::sendSymmetricKey) {
+				//TODO: Impliment
+
+			}
+			else if (choice == Menu::ClientChoices::exitProgram) {
+				break;
+			}
 			else {
-				LOG("Not yet implimented");
+				LOG("ERROR: Unknown client choice: " << static_cast<int>(choice));
 			}
 		}
 		catch (exception& e) {

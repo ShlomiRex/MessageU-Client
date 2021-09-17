@@ -12,7 +12,7 @@ using namespace std;
 class InteractiveMenu
 {
 public:
-	static void show_menu();
+	static void show_menu(string myUsername);
 	static Menu::ClientChoices get_choice();
 	static string readUsername();
 	static void getClientId(ClientId result, vector<User>* possibleClients);

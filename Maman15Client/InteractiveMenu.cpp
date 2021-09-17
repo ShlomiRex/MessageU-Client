@@ -2,7 +2,11 @@
 
 using namespace std;
 
-void InteractiveMenu::show_menu() {
+void InteractiveMenu::show_menu(string myUsername) {
+	if (myUsername.size() > 0) {
+		LOG("Hello " << myUsername << "!");
+	}
+
 	LOG("MessageU client at your service.\n");
 
 	LOG("10) Register");
@@ -49,7 +53,7 @@ Menu::ClientChoices InteractiveMenu::get_choice() {
 		catch (exception& e) {
 			LOG(e.what());
 			LOG("Please chooce valid entry.\n\n");
-			show_menu();
+			show_menu("");
 		}
 	}
 }
@@ -83,9 +87,9 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 		try {
 			DEBUG("Trying to parse input as user number");
 			int user_number = stoi(line);
-			for (int i = 0; i < possibleChoices->size(); i++) {
+			for (size_t i = 0; i < possibleChoices->size(); i++) {
 				if (user_number == (i + 1)) {
-					auto x = possibleChoices->at(i);
+					const auto& x = possibleChoices->at(i);
 					LOG("You chose user number: " << user_number << " with username: " << x.username);
 					auto found = possibleChoices->at(i).client_id;
 					memcpy(result, found, S_CLIENT_ID);
@@ -95,14 +99,14 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 			LOG("Please type valid user number from client list.");
 			continue;
 		}
-		catch (exception& e) {
+		catch (...) {
 			DEBUG("Couldn't parse input to number.");
 		}
 
 		//Try username
 		try {
 			DEBUG("Trying to parse input as username");
-			for (auto x : *possibleChoices) {
+			for (const auto& x : *possibleChoices) {
 				string username = x.username;
 				if (username == line) {
 					LOG("You chose username: " << x.username);
@@ -112,7 +116,7 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 			}
 			DEBUG("Couldn't find username in vector.")
 		}
-		catch (exception& e) {
+		catch (...) {
 			DEBUG("Couldn't parse input as username");
 		}
 
@@ -128,7 +132,7 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 				try {
 					string unhex = boost::algorithm::unhex(line);
 
-					for (auto x : *possibleChoices) {
+					for (const auto& x : *possibleChoices) {
 						//TODO: Compare client id in possible choices to input
 						string client_id_str = x.client_id;
 						if (client_id_str == unhex) {

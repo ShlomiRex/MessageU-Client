@@ -19,7 +19,7 @@ string hexify_str(const char* buffer, size_t length) {
 	stringstream ss;
 	ss << hex;
 
-	for (int i = 0; i < length; ++i) {
+	for (size_t i = 0; i < length; ++i) {
 		ss << setfill('0') << setw(2) << (0xFF & buffer[i]) << " ";
 	}
 	return ss.str();
