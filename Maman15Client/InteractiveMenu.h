@@ -6,13 +6,14 @@
 #include "MenuDefenitions.h"
 #include <vector>
 #include "Debug.h"
+#include "Utils.h"
 
 using namespace std;
 
 class InteractiveMenu
 {
 public:
-	static void show_menu(string myUsername);
+	static void show_menu(string myUsername, ClientId* myClientId);
 	static Menu::ClientChoices get_choice();
 	static string readUsername();
 	static void getClientId(ClientId result, vector<User>* possibleClients);

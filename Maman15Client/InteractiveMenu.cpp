@@ -2,9 +2,16 @@
 
 using namespace std;
 
-void InteractiveMenu::show_menu(string myUsername) {
+void InteractiveMenu::show_menu(string myUsername, ClientId* myClientId) {
 	if (myUsername.size() > 0) {
 		LOG("Hello " << myUsername << "!");
+	}
+
+	if (myClientId != nullptr) {
+		DEBUG("My client id: ");
+#ifdef DEBUGGING
+		hexify((const unsigned char*)myClientId, S_CLIENT_ID);
+#endif
 	}
 
 	LOG("MessageU client at your service.\n");
@@ -53,7 +60,7 @@ Menu::ClientChoices InteractiveMenu::get_choice() {
 		catch (exception& e) {
 			LOG(e.what());
 			LOG("Please chooce valid entry.\n\n");
-			show_menu("");
+			show_menu("", nullptr);
 		}
 	}
 }

@@ -6,6 +6,10 @@
 
 #define DEBUG_PREFIX "[main] "
 
+//TODO: When implimented send file, client version is 2!
+//TODO: Else, when send file is not implimented, client version is 1!
+#define CLIENT_VERSION 1
+
 using namespace std;
 
 int main()
@@ -39,13 +43,12 @@ int main()
 	vector<User> savedUsers;
 
 	while (true) {
-		InteractiveMenu::show_menu(myUsername);
+		InteractiveMenu::show_menu(myUsername, &myClientId);
+
 		Menu::ClientChoices choice = InteractiveMenu::get_choice();
 
-		//If using database, client version is 2!
-		bool isUsingSQLDatabase = true; // TODO: Change?
 		try {
-			Client client(ip, port, 1);
+			Client client(ip, port, CLIENT_VERSION);
 
 			if (choice == Menu::ClientChoices::registerUser) {
 				myUsername = InteractiveMenu::readUsername();
