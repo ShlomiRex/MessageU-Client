@@ -155,6 +155,7 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
     <ClCompile Include="Base64Wrapper.cpp" />
     <ClCompile Include="BufferUtils.cpp" />
     <ClCompile Include="FileManager.cpp" />
+    <ClCompile Include="Menu.cpp" />
     <ClCompile Include="MessageRequest.cpp" />
     <ClCompile Include="Request.cpp" />
     <ClCompile Include="Client.cpp" />
@@ -173,7 +174,7 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
     <ClInclude Include="BufferUtils.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="FileManager.h" />
-    <ClInclude Include="MenuDefenitions.h" />
+    <ClInclude Include="Menu.h" />
     <ClInclude Include="MessageRequest.h" />
     <ClInclude Include="Request.h" />
     <ClInclude Include="Client.h" />
@@ -183,6 +184,9 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
     <ClInclude Include="RSAWrapper.h" />
     <ClInclude Include="SymmetricCrypto.h" />
     <ClInclude Include="Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Text.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

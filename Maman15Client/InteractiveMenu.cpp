@@ -1,3 +1,4 @@
+/*
 #include "InteractiveMenu.h"
 
 using namespace std;
@@ -229,3 +230,4 @@ void InteractiveMenu::show_users(std::vector<MessageUProtocol::User>* users)
 		LOG("No available users.");
 	}
 }
+*/
