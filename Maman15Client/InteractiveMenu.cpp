@@ -92,26 +92,6 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 	while (true) {
 		getline(cin, line);
 
-		//Try number
-		try {
-			DEBUG("Trying to parse input as user number");
-			int user_number = stoi(line);
-			for (size_t i = 0; i < possibleChoices->size(); i++) {
-				if (user_number == (i + 1)) {
-					const auto& x = possibleChoices->at(i);
-					LOG("You chose user number: " << user_number << " with username: " << x.username);
-					auto found = possibleChoices->at(i).client_id;
-					memcpy(result, found, S_CLIENT_ID);
-					return;
-				}
-			}
-			LOG("Please type valid user number from client list.");
-			continue;
-		}
-		catch (...) {
-			DEBUG("Couldn't parse input to number.");
-		}
-
 		//Try username
 		try {
 			DEBUG("Trying to parse input as username");
@@ -144,8 +124,8 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 					for (const auto& x : *possibleChoices) {
 						//TODO: Compare client id in possible choices to input
 						string client_id_str = x.client_id;
-						if (client_id_str == unhex) {
-							std::copy(unhex.begin(), unhex.end(), result);
+						if (strncmp(client_id_str.c_str(), unhex.c_str(), S_CLIENT_ID) == 0) {
+							memcpy(result, x.client_id, S_CLIENT_ID);
 							return;
 						}
 					}
@@ -165,7 +145,37 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 			LOG(e.what());
 			LOG("Couldn't remove spaces from the input. Please try again.")
 		}
+
+		//We try number after we try hex, because hex can start with numbers.
+		//Try number
+		try {
+			DEBUG("Trying to parse input as user number");
+			int user_number = stoi(line);
+			for (size_t i = 0; i < possibleChoices->size(); i++) {
+				if (user_number == (i + 1)) {
+					const auto& x = possibleChoices->at(i);
+					LOG("You chose user number: " << user_number << " with username: " << x.username);
+					auto found = possibleChoices->at(i).client_id;
+					memcpy(result, found, S_CLIENT_ID);
+					return;
+				}
+			}
+			LOG("Please type valid user number from client list.");
+			continue;
+		}
+		catch (...) {
+			DEBUG("Couldn't parse input to number.");
+		}
 	}
+}
+
+string InteractiveMenu::resolveUsername(ClientId clientId, vector<User>* users) {
+	for (const auto& x : *users) {
+		if (strncmp(x.client_id, clientId, S_CLIENT_ID) == 0) {
+			return x.username;
+		}
+	}
+	return "";
 }
 
 string InteractiveMenu::readText() {
@@ -177,4 +187,45 @@ string InteractiveMenu::readText() {
 			break;
 	}
 	return text;
+}
+
+bool InteractiveMenu::yesNoChoice(std::string prompt, bool yesIsDefaultChoice)
+{
+	string defaultStr;
+	if (yesIsDefaultChoice) {
+		defaultStr = " [Y/n]";
+	}
+	else {
+		defaultStr = " [y/N]";
+	}
+	LOG(prompt << defaultStr);
+
+	string choice;
+	getline(cin, choice);
+
+	//Yes choice
+	if (choice == "Y" || choice == "y") {
+		return true;
+	}
+	//No choice
+	else if(choice == "N" || choice == "n") {
+		return false;
+	}
+	//Default choice
+	else {
+		return yesIsDefaultChoice;
+	}
+}
+
+void InteractiveMenu::show_users(std::vector<MessageUProtocol::User>* users)
+{
+	if (users->size() != 0) {
+		LOG("Available users:");
+		for (size_t i = 0; i < users->size(); i++) {
+			LOG((i+1) << ") " << users->at(i).username);
+		}
+	}
+	else {
+		LOG("No available users.");
+	}
 }

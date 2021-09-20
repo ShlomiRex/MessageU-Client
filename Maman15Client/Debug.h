@@ -5,7 +5,7 @@
 //using namespace std; //not good practice
 
 //Uncomment to stop debugging messages
-#define DEBUGGING 
+//#define DEBUGGING 
 
 #ifndef DEBUG_PREFIX
 #define DEBUG_PREFIX ""

@@ -178,10 +178,9 @@ int main()
 		InteractiveMenu::show_menu(myUsername, &myClientId);
 
 		Menu::ClientChoices choice = InteractiveMenu::get_choice();
+		Client client(ip, port, CLIENT_VERSION);
 
 		try {
-			Client client(ip, port, CLIENT_VERSION);
-
 			if (choice == Menu::ClientChoices::registerUser) {
 				myUsername = InteractiveMenu::readUsername();
 				client.connect();
@@ -192,6 +191,7 @@ int main()
 				client.getClients(&savedUsers);
 			}
 			else if (choice == Menu::ClientChoices::reqPublicKey) {
+				InteractiveMenu::show_users(&savedUsers);
 				InteractiveMenu::getClientId(myClientId, &savedUsers);
 				client.connect();
 				client.getPublicKey(myClientId, savedPubKey);
@@ -205,6 +205,7 @@ int main()
 				FileManager::getSavedClientId(myClientId);
 					
 				ClientId dest_clientId;
+				InteractiveMenu::show_users(&savedUsers);
 				InteractiveMenu::getClientId(dest_clientId, &savedUsers);
 				client.connect();
 				client.getSymKey(myClientId, dest_clientId);
@@ -222,7 +223,28 @@ int main()
 			else if (choice == Menu::ClientChoices::sendSymmetricKey) {
 				//Get dest client
 				ClientId dest_clientId;
+				InteractiveMenu::show_users(&savedUsers);
 				InteractiveMenu::getClientId(dest_clientId, &savedUsers);
+
+				string username = InteractiveMenu::resolveUsername(dest_clientId, &savedUsers);
+				if (username.size() == 0) {
+					LOG("You must first get public key. Do you want to automatically resolve public key of '" << username << "'? [Y/n]");
+					stringstream ss;
+					ss << "You must first get public key. Do you want to automatically resolve public key of '" << username << "'?";
+					bool yesChoice = InteractiveMenu::yesNoChoice(ss.str());
+
+					if (yesChoice) {
+						client.connect();
+						client.getPublicKey(myClientId, savedPubKey);
+						pubKeySaved = true;
+					}
+					else {
+						LOG("Please get public key manually.");
+					}
+				}
+				else {
+
+				}
 
 				//Get destination client public key
 				if (pubKeySaved) {
@@ -252,7 +274,7 @@ int main()
 					client.sendSymKey(myClientId, symkey, dest_clientId, savedPubKey);
 				}
 				else {
-					LOG("You must first get public key.");
+					
 				}
 			}
 			else if (choice == Menu::ClientChoices::exitProgram) {
@@ -260,6 +282,17 @@ int main()
 			}
 			else {
 				LOG("ERROR: Unknown client choice: " << static_cast<int>(choice));
+			}
+		}
+		catch (EmptyClientsList& e) {
+			LOG(e.what());
+			bool yesChoice = InteractiveMenu::yesNoChoice("Do you want me to fetch users automatically? (request #20)");
+			if (yesChoice) {
+				client.connect();
+				client.getClients(&savedUsers);
+			}
+			else {
+				LOG("Returning to main menu.");
 			}
 		}
 		catch (exception& e) {

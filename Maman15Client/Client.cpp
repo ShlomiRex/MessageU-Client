@@ -98,6 +98,8 @@ void Client::registerUser(string username, ClientId& result_clientId) {
 		string base64_private_key = Base64Wrapper::encode(generated_privkey);
 		file.write(base64_private_key.c_str(), base64_private_key.size());
 
+		string base64_decoded_private_key = Base64Wrapper::decode(base64_private_key); //TODO: REMOVE
+
 		file.close();
 		DEBUG("Done writing");
 

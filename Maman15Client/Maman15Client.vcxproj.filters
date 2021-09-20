@@ -81,6 +81,9 @@
     <ClCompile Include="SymmetricCrypto.cpp">
       <Filter>Source Files\Crypto</Filter>
     </ClCompile>
+    <ClCompile Include="Base64Helper.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ProtocolDefenitions.h">
@@ -130,6 +133,9 @@
     </ClInclude>
     <ClInclude Include="SymmetricCrypto.h">
       <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Base64Helper.h">
+      <Filter>Header Files\Utils</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
