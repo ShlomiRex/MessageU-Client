@@ -75,6 +75,12 @@
     <ClCompile Include="MessageRequest.cpp">
       <Filter>Source Files\Client</Filter>
     </ClCompile>
+    <ClCompile Include="AsymmetricCrypto.cpp">
+      <Filter>Source Files\Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="SymmetricCrypto.cpp">
+      <Filter>Source Files\Crypto</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ProtocolDefenitions.h">
@@ -118,6 +124,12 @@
     </ClInclude>
     <ClInclude Include="Debug.h">
       <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="AsymmetricCrypto.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="SymmetricCrypto.h">
+      <Filter>Header Files\Crypto</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

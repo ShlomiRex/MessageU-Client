@@ -6,12 +6,14 @@
 #include "Utils.h"
 #include "Debug.h"
 
+//using namespace MessageUProtocol; //bad practice
+
 //Packed size
 #define S_MESSAGE_HEADER 21
 typedef struct {
-	ClientId clientId;
-	MessageType messageType;
-	ContentSize contentSize;
+	MessageUProtocol::ClientId dest_clientId;
+	MessageUProtocol::MessageType messageType;
+	MessageUProtocol::ContentSize contentSize;
 } MessageHeader;
 
 
@@ -24,6 +26,6 @@ public:
 	MessageRequest(MessageHeader header);
 
 	//Return bytes, as you would for sending this message object. For request payload.
-	const char* pack(ContentSize* result_size) const;
+	const char* pack(MessageUProtocol::ContentSize* result_size) const;
 };
 

@@ -150,6 +150,7 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AESWrapper.cpp" />
+    <ClCompile Include="AsymmetricCrypto.cpp" />
     <ClCompile Include="Base64Wrapper.cpp" />
     <ClCompile Include="BufferUtils.cpp" />
     <ClCompile Include="FileManager.cpp" />
@@ -160,10 +161,12 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Response.cpp" />
     <ClCompile Include="RSAWrapper.cpp" />
+    <ClCompile Include="SymmetricCrypto.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AESWrapper.h" />
+    <ClInclude Include="AsymmetricCrypto.h" />
     <ClInclude Include="Base64Wrapper.h" />
     <ClInclude Include="BufferUtils.h" />
     <ClInclude Include="Debug.h" />
@@ -176,6 +179,7 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
     <ClInclude Include="InteractiveMenu.h" />
     <ClInclude Include="Response.h" />
     <ClInclude Include="RSAWrapper.h" />
+    <ClInclude Include="SymmetricCrypto.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

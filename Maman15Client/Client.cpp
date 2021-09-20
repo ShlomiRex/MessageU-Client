@@ -1,6 +1,7 @@
 #include "Client.h"
 
 using namespace std;
+using namespace MessageUProtocol;
 
 #define DEBUG_PREFIX "[Client] "
 
@@ -22,31 +23,46 @@ Client::~Client() {
 	delete endpoints;
 }
 
-void Client::registerUser(string username) {
+void Client::registerUser(string username, ClientId& result_clientId) {
 	LOG("Registering user...");
 
 	//Check if the info file exists
 	if (boost::filesystem::exists(FILE_REGISTER)) {
-		LOG(FILE_REGISTER << " already exists! Will not register.");
+		LOG(FILE_REGISTER << " already exists! Already registered.");
 		return;
 	}
 
-	ClientId clientId = { 0 };
-	request.pack_clientId(clientId);
+	ClientId myClientId = { 0 };
+	request.pack_clientId(myClientId);
 	request.pack_version();
 	request.pack_code(RequestCodes::registerUser);
 
 	//Payload size: name (with null terminator) + public key
-	request.pack_payloadSize(255 + RSAPublicWrapper::KEYSIZE);
+	request.pack_payloadSize(S_USERNAME + S_PUBLIC_KEY);
 
 	//Payload: Name
 	request.pack_username(username);
 
 	//Payload: Public key
-	RSAPrivateWrapper rsapriv;
-	char pubkeybuff[RSAPublicWrapper::KEYSIZE];
-	rsapriv.getPublicKey(pubkeybuff, RSAPublicWrapper::KEYSIZE);
-	request.pack_pub_key(pubkeybuff);
+
+	//Generate key pairs
+	string generated_pubkey, generated_privkey;
+	AsymmetricCrypto::generateKeys(generated_pubkey, generated_privkey);
+	
+	//Convert to PublicKey type
+	PublicKey my_publicKey = { 0 };
+	memcpy(my_publicKey, generated_pubkey.c_str(), S_PUBLIC_KEY);
+
+	//TODO: ERROR in send symm key. Encrypt. Something wrong with encryption with public key.
+	string cipher = AsymmetricCrypto::encrypt("Hello!", my_publicKey);
+	string decrypted = AsymmetricCrypto::decrypt(cipher, generated_privkey);
+
+	//TODO: PrivateKey is not 160 bytes! But 633???
+	//PrivateKey my_privateKey = { 0 };
+	//memcpy(my_privateKey, generated_privkey.c_str(), generated_privkey.size());
+
+	//Pack public key as payload
+	request.pack_pub_key(my_publicKey);
 
 	//Send request
 	sendRequest();
@@ -55,11 +71,14 @@ void Client::registerUser(string username) {
 	try {
 		ResponseHeader header = recvResponseHeader(ResponseCodes::registerSuccess);
 
-		ClientId clientId;
-		recvClientId(clientId);
+		ClientId dest_clientId;
+		recvClientId(dest_clientId);
+
+		//Save client id got from server
+		memcpy(result_clientId, dest_clientId, S_CLIENT_ID);
 
 		LOG("Registeration was a success! Client ID got from server:");
-		hexify((const unsigned char*)clientId, S_CLIENT_ID);
+		hexify((const unsigned char*)dest_clientId, S_CLIENT_ID);
 
 		DEBUG("Writing username and client id to file: " << FILE_REGISTER);
 
@@ -71,17 +90,18 @@ void Client::registerUser(string username) {
 
 		//In the second line, write the client id in human readable space seperated hex.
 		file.open(FILE_REGISTER, ios::app);
-		string str_clientid = hexify_str(clientId, S_CLIENT_ID);
+		string str_clientid = hexify_str(dest_clientId, S_CLIENT_ID);
 		file.write(str_clientid.c_str(), str_clientid.size());
 		file.write("\n", 1);
 
 		//In the third line, write private key
-		string private_key = rsapriv.getPrivateKey();
-		string base64_private_key = Base64Wrapper::encode(private_key);
+		string base64_private_key = Base64Wrapper::encode(generated_privkey);
 		file.write(base64_private_key.c_str(), base64_private_key.size());
 
 		file.close();
 		DEBUG("Done writing");
+
+		LOG("Register success!");
 	}
 	catch (exception& e) {
 		LOG(e.what());
@@ -103,8 +123,8 @@ size_t Client::sendRequest() {
 
 ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 	DEBUG("Receving response header...");
-
 	const char* payload = recvNextPayload(S_RESPONSE_HEADER);
+	DEBUG("Received response header");
 
 	ResponseHeader header(payload, S_RESPONSE_HEADER);
 
@@ -128,9 +148,9 @@ ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 void Client::getClients(vector<User>* result) {
 	LOG("Getting clients...");
 
-	ClientId clientId = { 0 };
+	ClientId dest_clientId = { 0 };
 	try {
-		FileManager::getSavedClientId(clientId);
+		FileManager::getSavedClientId(dest_clientId);
 	}
 	catch (exception& e) {
 		LOG(e.what());
@@ -138,7 +158,7 @@ void Client::getClients(vector<User>* result) {
 		return;
 	}
 	
-	request.pack_clientId(clientId);
+	request.pack_clientId(dest_clientId);
 	request.pack_version();
 	request.pack_code(RequestCodes::reqClientList);
 	request.pack_payloadSize(0);
@@ -179,7 +199,7 @@ void Client::getClients(vector<User>* result) {
 
 }
 
-void Client::getPublicKey(ClientId client_id) {
+void Client::getPublicKey(ClientId& client_id, PublicKey& result) {
 	LOG("Getting public key...");
 
 	//First, get my own client id
@@ -202,15 +222,18 @@ void Client::getPublicKey(ClientId client_id) {
 	try {
 		ResponseHeader header = recvResponseHeader(ResponseCodes::publicKey);
 
-		ClientId clientId = { 0 };
+		ClientId dest_clientId = { 0 };
 		PublicKey pubKey = { 0 };
-		recvClientId(clientId);
+		recvClientId(dest_clientId);
 		recvPublicKey(pubKey);
 
 		LOG("Client ID: ");
-		hexify((const unsigned char*)clientId, S_CLIENT_ID);
+		hexify((const unsigned char*)dest_clientId, S_CLIENT_ID);
 		LOG("Public key (" << S_PUBLIC_KEY << " bytes): ");
 		hexify((const unsigned char*)pubKey, S_PUBLIC_KEY);
+
+		memcpy(result, pubKey, S_PUBLIC_KEY);
+		LOG("Public key saved!");
 	}
 	catch (exception& e) {
 		LOG(e.what());
@@ -248,19 +271,19 @@ User Client::recvNextUserInList() {
 	return result;
 }
 
-void Client::recvClientId(ClientId result) {
+void Client::recvClientId(ClientId& result) {
 	const char* payload = recvNextPayload(S_CLIENT_ID);
 	memcpy(result, payload, S_CLIENT_ID);
 	delete[] payload;
 }
 
-void Client::recvUsername(Username result) {
+void Client::recvUsername(Username& result) {
 	const char* payload = recvNextPayload(S_USERNAME);
 	memcpy(result, payload, S_USERNAME);
 	delete[] payload;
 }
 
-void Client::recvPublicKey(PublicKey result) {
+void Client::recvPublicKey(PublicKey& result) {
 	const char* payload = recvNextPayload(S_PUBLIC_KEY);
 	memcpy(result, payload, S_PUBLIC_KEY);
 	delete[] payload;
@@ -290,89 +313,19 @@ MessageSize Client::recvMessageSize() {
 	return msgSize;
 }
 
-void Client::sendText(string username, string text) {
-	LOG("Handling send text request...");
-
-	//First, send symmetric key request
-	//sendSymmetricKeyRequest();
-
-	/*
-	//First, get my own client id
-	ClientId my_client_id = { 0 };
-	FileManager::getSavedClientId(my_client_id);
-
-	request.pack_clientId(my_client_id);
-	request.pack_version();
-	request.pack_code(RequestCodes::sendText);
-	
-
-	//Payload size
-	//PayloadSize payloadSize = sizeof(SendMsgRequestHeader) + text.size() + 1; //with null terminator
-	//request.pack_payloadSize(payloadSize);
-
-	//Prepare payload
-	//SendMsgRequestHeader msgHeader;
-	//msgHeader.dest_clientId = { 0 }; //TODO: Impliment
-	//msgHeader.msgType = MessageType::sendText;
-	*/
-
-	//=========================================
-	
-
-	/*
-	std::cout << std::endl << std::endl << "----- AES EXAMPLE -----" << std::endl << std::endl;
-
-	std::string plaintext = "Once upon a time, a plain text dreamed to become a cipher";
-	std::cout << "Plain:" << std::endl << plaintext << std::endl;
-
-	// 1. Generate a key and initialize an AESWrapper. You can also create AESWrapper with default constructor which will automatically generates a random key.
-	size_t keylen = AESWrapper::DEFAULT_KEYLENGTH;
-	unsigned char key[keylen];
-	const unsigned char* out = AESWrapper::GenerateKey(key, AESWrapper::DEFAULT_KEYLENGTH);
-	
-	AESWrapper aes(key, keylen);
-
-	// 2. encrypt a message (plain text)
-	std::string ciphertext = aes.encrypt(plaintext.c_str(), plaintext.length());
-	std::cout << "Cipher:" << std::endl;
-	hexify(reinterpret_cast<const unsigned char*>(ciphertext.c_str()), ciphertext.length());	// print binary data nicely
-
-	// 3. decrypt a message (cipher text)
-	std::string decrypttext = aes.decrypt(ciphertext.c_str(), ciphertext.length());
-	std::cout << "Decrypted:" << std::endl << decrypttext << std::endl;
-	*/
-
-	//=========================================
-
-	/*
-	FileManager::getSavedPrivateKey();
-
-	// 1. Generate a key and initialize an AESWrapper. You can also create AESWrapper with default constructor which will automatically generates a random key.
-	unsigned char key[AESWrapper::DEFAULT_KEYLENGTH];
-	AESWrapper aes(AESWrapper::GenerateKey(key, AESWrapper::DEFAULT_KEYLENGTH), AESWrapper::DEFAULT_KEYLENGTH);
-
-	// 2. encrypt a message (plain text)
-	std::string ciphertext = aes.encrypt(text.c_str(), text.length());
-	std::cout << "Cipher:" << std::endl;
-	hexify(reinterpret_cast<const unsigned char*>(ciphertext.c_str()), ciphertext.length());	// print binary data nicely
-
-	*/
-
-}
-
-void Client::getSymKey(ClientId my_clientId, ClientId dest_clientId) {
+void Client::getSymKey(ClientId& my_clientId, ClientId& dest_clientId) {
 	LOG("Getting symmetric key...");
 
 	//Request Header
 	request.pack_clientId(my_clientId);
 	request.pack_version();
-	request.pack_code(RequestCodes::sendText);
+	request.pack_code(RequestCodes::sendMessage);
 
 	//Payload is depends on message type and such, let it do the hard work
 
 	//Create message header and set it's fields
 	MessageHeader msgHeader;
-	memcpy(msgHeader.clientId, dest_clientId, S_CLIENT_ID);
+	memcpy(msgHeader.dest_clientId, dest_clientId, S_CLIENT_ID);
 	msgHeader.messageType = (MessageType)MessageTypes::reqSymmetricKey; //Cast enum (MessageTypes, abstract) to MessageType (what we send)
 	msgHeader.contentSize = 0; //We don't send anything in message
 
@@ -403,7 +356,7 @@ void Client::getSymKey(ClientId my_clientId, ClientId dest_clientId) {
 	LOG("And message ID: " << messageId);
 }
 
-void Client::pullMessages(ClientId client_id, vector<User>& savedUsers) {
+void Client::pullMessages(ClientId& client_id, vector<User>& savedUsers) {
 	LOG("Pulling waiting messages...");
 
 	//Request Header
@@ -476,7 +429,7 @@ void Client::pullMessages(ClientId client_id, vector<User>& savedUsers) {
 			else if (_msg_msgType_enum == MessageTypes::sendSymmetricKey) {
 				cout << "Symmetric key received" << endl;
 			}
-			else if (_msg_msgType_enum == MessageTypes::sendText) {
+			else if (_msg_msgType_enum == MessageTypes::sendMessage) {
 				//TODO: Decrypt
 				size_t msg_bytes_left = msg_msgSize;
 				while (msg_bytes_left > 0) {
@@ -513,14 +466,49 @@ void Client::pullMessages(ClientId client_id, vector<User>& savedUsers) {
 	}
 }
 
-void Client::sendSymmetricKeyRequest(ClientId clientId) {
-	LOG("Sending symmetric key request...");
-	
-
-}
-
 void Client::connect() {
 	DEBUG("Connecting to server...");
 	boost::asio::connect(*socket, *endpoints);
 	DEBUG("Connected!");
+}
+
+void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId& dest_clientId, PublicKey& dest_client_pubKey) {
+	LOG("Sending my symmetric key...");
+
+	//Request Header
+	request.pack_clientId(myClientId);
+	request.pack_version();
+	request.pack_code(RequestCodes::sendMessage);
+
+	MessageHeader msgHeader;
+	msgHeader.messageType = (MessageType)MessageTypes::sendSymmetricKey; //Cast enum to its value
+	memcpy(msgHeader.dest_clientId, dest_clientId, S_CLIENT_ID);
+
+	//TODO: Encrypt message with pubkey
+	// 
+	// 3. create an RSA encryptor
+	//RSAPublicWrapper rsapub(dest_client_pubKey);
+	//string cipher = rsapub.encrypt((const char*)mySymmKey, S_SYMMETRIC_KEY);	// you can encrypt a const char* or an std::string
+	//cout << "cipher:" << endl;
+	//hexify((unsigned char*)cipher.c_str(), cipher.length());	// print binary data nicely
+
+	/*
+	string pubkey, privkey;
+	AsymmetricCrypto::getKeys2(pubkey, privkey);
+	*/
+
+
+	
+	string cipher2 = AsymmetricCrypto::encrypt("Hello!", dest_client_pubKey);
+	string cipher = AsymmetricCrypto::encrypt(mySymmKey, dest_client_pubKey);
+	LOG("Encrypted symmetric key: " << cipher.size() << " bytes:");
+	hexify((const unsigned char*)cipher.c_str(), cipher.size());
+
+	//msgHeader.contentSize = 
+	//PayloadSize payloadSize = 0;
+	//request.pack_payloadSize(payloadSize);
+
+
+	LOG("Symmetric key sent!");
+	
 }

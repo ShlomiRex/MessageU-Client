@@ -15,8 +15,8 @@
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include "Base64Wrapper.h"
-#include "RSAWrapper.h"
-#include "AESWrapper.h"
+//#include "RSAWrapper.h"
+//#include "AESWrapper.h"
 #include <iomanip>
 #include "BufferUtils.h"
 #include "ProtocolDefenitions.h"
@@ -27,18 +27,16 @@
 #include "FileManager.h"
 #include "MessageRequest.h"
 #include "Debug.h"
+#include "AsymmetricCrypto.h"
+#include "SymmetricCrypto.h"
 #pragma comment(lib, "Ws2_32.lib")
 
-using namespace std;
-
-struct InitSocketException : public exception {
-	const char* what() const throw () {
-		return "Encountered exception while initializing client socket.";
-	}
-};
+//using namespace std; //bad practice
+//using namespace MessageUProtocol; //bad practice
 
 //Client holds a single request buffer. Because the protocol is stateless, we only send ONE request, per client object.
 //The responses, however, can be more than 1 packet.
+
 class Client
 {
 private:
@@ -53,36 +51,42 @@ private:
 	size_t sendRequest();
 
 	//Receive response header (fixed size). 
-	ResponseHeader recvResponseHeader(ResponseCodes requiredCode);
+	ResponseHeader recvResponseHeader(MessageUProtocol::ResponseCodes requiredCode);
 	
 	//General function to receive required amount of bytes in socket.
 	const char* recvNextPayload(uint32_t amountRecvBytes);
 
 	//Spesific recv functions
-	User recvNextUserInList();
-	void recvClientId(ClientId result);
-	void recvUsername(Username result);
-	void recvPublicKey(PublicKey result);
-	MessageId recvMessageId();
-	MessageType recvMessageType();
-	MessageSize recvMessageSize();
-
-	void sendSymmetricKeyRequest(ClientId clientId);
+	MessageUProtocol::User recvNextUserInList();
+	void recvClientId(MessageUProtocol::ClientId& result);
+	void recvUsername(MessageUProtocol::Username& result);
+	void recvPublicKey(MessageUProtocol::PublicKey& result);
+	MessageUProtocol::MessageId recvMessageId();
+	MessageUProtocol::MessageType recvMessageType();
+	MessageUProtocol::MessageSize recvMessageSize();
 
 public:
-	Client(string ip, string port, Version clientVersion = 1);
+	Client(std::string ip, std::string port, MessageUProtocol::Version clientVersion = 1);
 	~Client();
 
 	void connect();
 
-	void registerUser(string user);
-	void getClients(vector<User>* result);
-	void getPublicKey(ClientId client_id);
-	void getSymKey(ClientId my_clientId, ClientId clientId);
-	void pullMessages(ClientId client_id, vector<User>& savedUsers);
-
-	void sendText(string username, string text);
+	void registerUser(std::string user, MessageUProtocol::ClientId& result_clientId);
+	void getClients(std::vector<MessageUProtocol::User>* result);
+	void getPublicKey(MessageUProtocol::ClientId& client_id, MessageUProtocol::PublicKey& result);
+	void pullMessages(MessageUProtocol::ClientId& client_id, std::vector<MessageUProtocol::User>& savedUsers);
+	void sendText(std::string username, std::string text);
+	void getSymKey(MessageUProtocol::ClientId& my_clientId, MessageUProtocol::ClientId& dest_clientId);
+	void sendSymKey(
+		MessageUProtocol::ClientId& myClientId, 
+		MessageUProtocol::SymmetricKey& mySymmKey, 
+		MessageUProtocol::ClientId& dest_clientId, 
+		MessageUProtocol::PublicKey& dest_client_pubKey);
 
 };
 
-
+struct InitSocketException : public std::exception {
+	const char* what() const throw () {
+		return "Encountered exception while initializing client socket.";
+	}
+};

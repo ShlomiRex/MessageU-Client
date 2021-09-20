@@ -3,6 +3,7 @@
 #define DEBUG_PREFIX "[MessageRequest] "
 
 using namespace std;
+using namespace MessageUProtocol;
 
 MessageRequest::MessageRequest(MessageHeader header) : header(header), messageContent(nullptr) {
 
@@ -16,7 +17,7 @@ const char* MessageRequest::pack(ContentSize* result_size) const {
 
 	//Write header
 	DEBUG("Packing message header (" << S_MESSAGE_HEADER << " bytes)");
-	writer.write(header.clientId, S_CLIENT_ID);
+	writer.write(header.dest_clientId, S_CLIENT_ID);
 	writer.write1byte(header.messageType);
 	writer.write4bytes(header.contentSize);
 

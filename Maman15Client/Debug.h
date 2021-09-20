@@ -1,5 +1,9 @@
 #pragma once
 
+#include <iostream>
+
+//using namespace std; //not good practice
+
 //Uncomment to stop debugging messages
 #define DEBUGGING 
 
@@ -7,10 +11,10 @@
 #define DEBUG_PREFIX ""
 #endif
 
-#define LOG(msg) cout << DEBUG_PREFIX << msg << endl;
+#define LOG(msg) std::cout << DEBUG_PREFIX << msg << std::endl;
 
 #ifdef DEBUGGING
-#define DEBUG(msg) cout << "[Debug] "; LOG(msg);
+#define DEBUG(msg) std::cout << "[Debug] "; LOG(msg);
 #endif
 
 #ifndef DEBUGGING

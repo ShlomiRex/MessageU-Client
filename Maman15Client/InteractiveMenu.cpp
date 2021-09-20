@@ -1,18 +1,20 @@
 #include "InteractiveMenu.h"
 
 using namespace std;
+using namespace MessageUProtocol;
 
 void InteractiveMenu::show_menu(string myUsername, ClientId* myClientId) {
 	if (myUsername.size() > 0) {
 		LOG("Hello " << myUsername << "!");
 	}
 
+#ifdef DEBUGGING
 	if (myClientId != nullptr) {
 		DEBUG("My client id: ");
-#ifdef DEBUGGING
 		hexify((const unsigned char*)myClientId, S_CLIENT_ID);
-#endif
 	}
+#endif
+	
 
 	LOG("MessageU client at your service.\n");
 
@@ -46,7 +48,7 @@ Menu::ClientChoices InteractiveMenu::get_choice() {
 			case 40:
 				return Menu::ClientChoices::reqPullWaitingMessages;
 			case 50:
-				return Menu::ClientChoices::sendText;
+				return Menu::ClientChoices::sendMessage;
 			case 51:
 				return Menu::ClientChoices::sendReqSymmetricKey;
 			case 52:
@@ -83,7 +85,7 @@ void InteractiveMenu::getClientId(ClientId result, vector<User>* possibleChoices
 		throw EmptyClientsList();
 	}
 
-	LOG("I need to know the client ID.");
+	LOG("I need to know the destination client ID.");
 	LOG("Please type username(e.g. 'Shlomi'), user number(e.g. '1'), or client id (in hex, 16 bytes, e.g. '66 c1 81 ...'): ");
 	string line;
 

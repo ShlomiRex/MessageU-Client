@@ -3,6 +3,7 @@
 #define DEBUG_PREFIX "[Request] "
 
 using namespace std;
+using namespace MessageUProtocol;
 
 Request::Request(Version version) : clientVersion(version), writer(S_PACKET_SIZE) {
 	
@@ -19,12 +20,12 @@ void Request::pack_version() {
 }
 
 
-void Request::pack_clientId(const ClientId clientId) {
+void Request::pack_clientId(const ClientId& dest_clientId) {
 	DEBUG("Packing clientId (" << S_CLIENT_ID << " bytes):");
 #ifdef DEBUGGING
-	hexify((const unsigned char*)clientId, S_CLIENT_ID);
+	hexify((const unsigned char*)dest_clientId, S_CLIENT_ID);
 #endif
-	writer.write(clientId, S_CLIENT_ID);
+	writer.write(dest_clientId, S_CLIENT_ID);
 }
 
 void Request::pack_code(RequestCodes code) {
@@ -55,7 +56,7 @@ void Request::pack_username(string username) {
 	writer.write(buff, S_USERNAME);
 }
 
-void Request::pack_pub_key(const PublicKey pubkey) {
+void Request::pack_pub_key(const PublicKey& pubkey) {
 	DEBUG("Packing public key (" << S_PUBLIC_KEY << " bytes): ");
 #ifdef DEBUGGING
 	hexify((const unsigned char*)pubkey, S_PUBLIC_KEY);
@@ -63,7 +64,7 @@ void Request::pack_pub_key(const PublicKey pubkey) {
 	writer.write(pubkey, S_PUBLIC_KEY);
 }
 
-void Request::pack_client_id(const ClientId client_id)
+void Request::pack_client_id(const ClientId& client_id)
 {
 	DEBUG("Packing client id (" << S_CLIENT_ID << ") bytes: ");
 #ifdef DEBUGGING

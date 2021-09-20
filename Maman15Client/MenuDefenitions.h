@@ -5,7 +5,7 @@ namespace Menu {
 		reqClientList = 20,
 		reqPublicKey = 30,
 		reqPullWaitingMessages = 40,
-		sendText = 50,
+		sendMessage = 50,
 		sendReqSymmetricKey = 51,
 		sendSymmetricKey = 52,
 		sendFile = 53,
