@@ -1,8 +1,9 @@
 #include "Menu.h"
 
 using namespace std;
+using namespace MessageUProtocol;
 
-Menu::Menu() {
+Menu::Menu() : registered(false) {
 	memset(me.client_id, 0, S_CLIENT_ID);
 	memset(me.username, 0, S_USERNAME);
 }
@@ -21,17 +22,38 @@ void Menu::setClientId(MessageUProtocol::ClientId& clientId)
 	memcpy(me.client_id, clientId, S_CLIENT_ID);
 }
 
-string Menu::getUsername()
+void Menu::setUserPublicKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::PublicKey& pubkey)
+{
+	for (auto& x : users) {
+		if (strncmp(x.client_id, userClientId, S_CLIENT_ID) == 0) {
+			memcpy(x.publicKey, pubkey, S_PUBLIC_KEY);
+			return;
+		}
+	}
+	throw MenuUserNotFound();
+}
+
+void Menu::setRegistered()
+{
+	registered = true;
+}
+
+string Menu::getUsername() const
 {
 	return me.username;
 }
 
-void Menu::getClientId(MessageUProtocol::ClientId result)
+void Menu::getMyClientId(ClientId& result) const
 {
 	memcpy(result, me.client_id, S_CLIENT_ID);
 }
 
-void Menu::show() {
+bool Menu::isRegistered()
+{
+	return registered;
+}
+
+void Menu::show() const {
 	if ((string)(me.username) != "") {
 		LOG("Hello " << me.username << "!");
 	}
@@ -56,37 +78,69 @@ void Menu::show() {
 	LOG("0) Exit client");
 }
 
-ClientChoices Menu::get_choice()
+void Menu::showUsers() const
+{
+	if (users.size() != 0) {
+		LOG("Available users:");
+		for (size_t i = 0; i < users.size(); i++) {
+			const auto& user = users.at(i);
+			string clientId_str = hexify_str(user.client_id, S_CLIENT_ID);
+
+			LOG("\t" << (i + 1) << ") Username: " << user.username);
+			LOG("\tClient ID: " << clientId_str);
+
+			//Check public key is not zeroes array
+			if (is_zero_filled(user.publicKey, S_PUBLIC_KEY)) {
+				LOG("\tPublic key: Not aquired");
+			}
+			else {
+				LOG("\tPublic key: Aquired");
+			}
+			LOG("");
+		}
+	}
+	else {
+		LOG("No available users.");
+	}
+}
+
+ClientChoices Menu::get_choice() const
 {
 	string line;
 
 	while (true) {
 		try {
 			getline(cin, line);
-			int __choice = stoi(line); //throws invalid argument
-			if (__choice < 0) {
-				throw invalid_argument("Choice is negative number. No such choice.");
+			if (is_number(line)) {
+				int __choice = stoi(line); //throws invalid argument
+				if (__choice < 0) {
+					throw invalid_argument("Choice is negative number. No such choice.");
+				}
+				switch (__choice) {
+				case 10:
+					return ClientChoices::registerUser;
+				case 20:
+					return ClientChoices::reqClientList;
+				case 30:
+					return ClientChoices::reqPublicKey;
+				case 40:
+					return ClientChoices::reqPullWaitingMessages;
+				case 50:
+					return ClientChoices::sendMessage;
+				case 51:
+					return ClientChoices::sendReqSymmetricKey;
+				case 52:
+					return ClientChoices::sendSymmetricKey;
+				case 0:
+					return ClientChoices::exitProgram;
+				default:
+					throw invalid_argument("No such choice.");
+				}
 			}
-			switch (__choice) {
-			case 10:
-				return ClientChoices::registerUser;
-			case 20:
-				return ClientChoices::reqClientList;
-			case 30:
-				return ClientChoices::reqPublicKey;
-			case 40:
-				return ClientChoices::reqPullWaitingMessages;
-			case 50:
-				return ClientChoices::sendMessage;
-			case 51:
-				return ClientChoices::sendReqSymmetricKey;
-			case 52:
-				return ClientChoices::sendSymmetricKey;
-			case 0:
-				return ClientChoices::exitProgram;
-			default:
-				throw invalid_argument("No such choice.");
+			else {
+				throw invalid_argument("You must choose a number.");
 			}
+
 		}
 		catch (exception& e) {
 			LOG(e.what());
@@ -106,5 +160,128 @@ void Menu::readAndSetMyUsername()
 			break;
 	}
 	setUsername(username);
+}
+
+const MenuUser Menu::chooseUser() const
+{
+	//Check saved clients vector
+	if (users.size() == 0) {
+		throw EmptyClientsList();
+	}
+
+	LOG("I need to know destination user to send request to.");
+	LOG("Please type username(e.g. 'Shlomi'), user number(e.g. '1'), or client id (in hex, 16 bytes, e.g. '66 c1 81 ...'): ");
+	string line;
+
+	while (true) {
+		getline(cin, line);
+
+		//Try number
+		try {
+			DEBUG("Trying to parse input as user number");
+			//Check is number first
+
+			//int user_number = stoi(line); //Never use it to check if number. If line is hex: '8f 87 48...' it converts first character only to 8 instead of throwing error.
+			if (is_number(line)) {
+				int user_number = stoi(line); //Now we can use it, because we are sure it is a number.
+				for (size_t i = 0; i < users.size(); i++) {
+					if (user_number == (i + 1)) {
+						const auto& x = users.at(i);
+						LOG("You chose user number: " << user_number << " with username: " << x.username);
+						auto found = users.at(i).client_id;
+						return x;
+					}
+				}
+				LOG("Please type valid user number from client list.");
+				continue;
+			}
+			else {
+				//do nothing, continue to parse maybe username or hex
+			}
+		}
+		catch (...) {
+			DEBUG("Couldn't parse input to number.");
+		}
+
+		//Try username
+		try {
+			DEBUG("Trying to parse input as username");
+			for (const auto& x : users) {
+				string username = x.username;
+				if (username == line) {
+					LOG("You chose username: " << x.username);
+					return x;
+				}
+			}
+			DEBUG("Couldn't find username in vector.")
+		}
+		catch (...) {
+			DEBUG("Couldn't parse input as username");
+		}
+
+		//Try hex
+		try {
+			DEBUG("Trying to parse input as hex");
+			//Remove all spaces
+			line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
+
+			//Check exact size
+			//Multiply by 2 because 1 hex = 2 chars
+			if (line.size() == S_CLIENT_ID * 2) {
+				//Check hex conversion (for example, 'G' letter is not hex. Or any other character like '/'.)
+				try {
+					string unhex = boost::algorithm::unhex(line);
+
+					for (const auto& x : users) {
+						//TODO: Compare client id in possible choices to input
+						string client_id_str = x.client_id;
+						if (strncmp(client_id_str.c_str(), unhex.c_str(), S_CLIENT_ID) == 0) {
+							return x;
+						}
+					}
+
+					DEBUG("Could not find clientId in the clients list.");
+				}
+				catch (exception& e) {
+					LOG(e.what());
+					LOG("Couldn't convert input to valid hex string. Please try again.");
+				}
+			}
+			else {
+				LOG("Please type valid username, user number or 16 bytes hex.");
+			}
+		}
+		catch (exception& e) {
+			LOG(e.what());
+			LOG("Couldn't remove spaces from the input. Please try again.")
+		}
+	}
+}
+
+bool Menu::yesNoChoice(string prompt, bool yesIsDefaultChoice) {
+	string defaultStr;
+	if (yesIsDefaultChoice) {
+		defaultStr = " [Y/n]";
+	}
+	else {
+		defaultStr = " [y/N]";
+	}
+	LOG(prompt << defaultStr);
+
+	string choice;
+	getline(cin, choice);
+
+	//Yes choice
+	if (choice == "Y" || choice == "y") {
+		return true;
+	}
+	//No choice
+	else if (choice == "N" || choice == "n") {
+		return false;
+	}
+	//Default choice
+	else {
+		return yesIsDefaultChoice;
+	}
 }
 

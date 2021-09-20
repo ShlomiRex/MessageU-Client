@@ -24,3 +24,21 @@ string hexify_str(const char* buffer, size_t length) {
 	}
 	return ss.str();
 }
+
+bool is_number(const std::string& s)
+{
+	std::string::const_iterator it = s.begin();
+	while (it != s.end() && std::isdigit(*it)) ++it;
+	return !s.empty() && it == s.end();
+}
+
+bool is_zero_filled(const char* arr, size_t s_arr)
+{
+    for (size_t i = 0; i < s_arr; i++) {
+        //If not zero, return false, arr is not zero filled
+        if (arr[i] != '\0') {
+            return false;
+        }
+    }
+    return true;
+}

@@ -28,11 +28,58 @@
 using namespace std;
 using namespace MessageUProtocol;
 
-void updateUsers(Menu& menuobj, vector<User>* serverResponse) {
+void updateUsers(Menu& menuobj, vector<MenuUser>* serverResponse) {
 	//Clear current users from memory
 	menuobj.users.clear();
 	//Save new users
 	menuobj.users.assign(serverResponse->begin(), serverResponse->end());
+}
+
+//We re-use this code twice: explicitly (by user input) or by asking him if he wants to fetch it automatically.
+void registerMyself(Menu& menu, Client& client) {
+	//Temporary store users from the server response
+	vector<MenuUser> menuUsers;
+
+	//Get users from server
+	vector<MessageUProtocol::User> users;
+
+	client.connect();
+	ClientId myClientId;
+	menu.getMyClientId(myClientId);
+	client.getClients(myClientId, &users);
+
+	for (const auto& x : users) {
+		//It's ok, vector does the copy operator, so it won't be freed after loop,
+		MenuUser menuUser;
+		memcpy(menuUser.client_id, x.client_id, S_CLIENT_ID);
+		memset(menuUser.publicKey, 0, S_PUBLIC_KEY); //Here, we still don't know the public ip of each client. But it's ok, we cna deal with it later.
+		memcpy(menuUser.username, x.username, S_USERNAME);
+
+		menuUsers.push_back(menuUser);
+	}
+
+	if (menuUsers.size() > 0) {
+		//Update our saved users in memory
+		updateUsers(menu, &menuUsers);
+
+		LOG("Users saved in memory for later use.");
+	}
+}
+
+void aquirePublicKey(Menu& menu, Client& client) {
+	menu.showUsers();
+
+	MenuUser destUser = menu.chooseUser();
+
+	client.connect();
+
+	ClientId myClientId;
+	menu.getMyClientId(myClientId);
+	//Update 'destUser' with new public key
+	client.getPublicKey(myClientId, destUser.client_id, destUser.publicKey);
+
+	//Get that public key and update menu users
+	menu.setUserPublicKey(destUser.client_id, destUser.publicKey);
 }
 
 int main()
@@ -81,6 +128,8 @@ int main()
 
 		menu.setUsername(myUsername);
 		menu.setClientId(myClientId);
+
+		menu.setRegistered();
 	}
 	catch (InfoFileNotExistException) {
 		//do nothing
@@ -100,29 +149,113 @@ int main()
 		//Read my own info
 		string myUsername = menu.getUsername();
 		ClientId myClientId;
-		menu.getClientId(myClientId);
+		menu.getMyClientId(myClientId);
 
-		if (choice == ClientChoices::registerUser) {
-			if (myUsername.size() == 0) {
-				menu.readAndSetMyUsername();
+		try {
+			if (choice == ClientChoices::registerUser) {
+				if (myUsername.size() == 0) {
+					menu.readAndSetMyUsername();
+
+					client.connect();
+					myUsername = menu.getUsername();
+					client.registerUser(myUsername, myClientId);
+
+					menu.setRegistered();
+				}
+				else {
+					LOG("'" << myUsername << "', your already registered!");
+				}
+			}
+			else if (choice == ClientChoices::reqClientList) {
+				registerMyself(menu, client);
+			}
+			else if (choice == ClientChoices::reqPublicKey) {
+				aquirePublicKey(menu, client);
+			}
+			else if (choice == ClientChoices::sendMessage) {
+				//TODO: Impliment
+				LOG("Not yet implimented");
+			}
+			else if (choice == ClientChoices::sendReqSymmetricKey) {
+				menu.showUsers();
+
+				MenuUser destUser = menu.chooseUser();
+				
+				client.connect();
+				client.getSymKey(myClientId, destUser.client_id);
+			}
+			else if (choice == ClientChoices::sendFile) {
+				//TODO: Impliment as bonous
+				LOG("Not yet implimented");
+			}
+			else if (choice == ClientChoices::reqPullWaitingMessages) {
+				//TODO: Impliment
+				LOG("Not yet implimented");
+				//client.connect();
+				//client.pullMessages(myClientId, savedUsers);
+			}
+			else if (choice == ClientChoices::sendSymmetricKey) {
+				if (menu.isRegistered()) {
+					menu.showUsers();
+					MenuUser destUser = menu.chooseUser();
+
+					if (is_zero_filled(destUser.publicKey, S_PUBLIC_KEY)) {
+						LOG("You need to get this user's public key.");
+						stringstream ss;
+						ss << "Would you like me to automatically get the public key of '" << destUser.username << "'?";
+						if (menu.yesNoChoice(ss.str(), true)) {
+							aquirePublicKey(menu, client);
+						}
+						else {
+							LOG("Returning to main menu.");
+						}
+					}
+					else {
+						//TODO: Impliment
+					}
+				}
+				else {
+					//we can do this because server will return error every time because my username is empty (which is not allowed).
+					LOG("You must register first.");
+				}
+
+				/*
+				//Generate new symmetric key
+				SymmetricKey symkey;
+				SymmetricCrypto::generateKey(symkey);
+
+				//Create 
+				//SecureChannel sec;
+				//memcpy(sec.user.client_id, dest_clientId, S_CLIENT_ID);
+
 
 				client.connect();
-				client.registerUser(menu.getUsername(), myClientId);
+				client.sendSymKey(myClientId, symkey, dest_clientId, savedPubKey);
+				*/
+
+			}
+			else if (choice == ClientChoices::exitProgram) {
+				break;
 			}
 			else {
-				LOG("'" << myUsername << "', you already registered!");
+				LOG("ERROR: Unknown client choice: " << static_cast<int>(choice));
 			}
 		}
-		else if (choice == ClientChoices::reqClientList) {
-			client.connect();
-			
-			//Temporary store users from the server response
-			vector<User> users;
-			client.getClients(&users);
-
-			//Update our saved users in memory
-			updateUsers(menu, &users);
+		catch (EmptyClientsList& e) {
+			LOG(e.what());
+			/*
+			if (menu.yesNoChoice("Would you like me to get clients list automatically?", true)) {
+				//registerMyself(client, myClientId, menu);
+			}
+			else {
+				LOG("Returning to main menu.");
+			}
+			*/
 		}
+		catch (exception& e) {
+			LOG(e.what());
+		}
+
 
 		cout << "\n\n\n";
 	}

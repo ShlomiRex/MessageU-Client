@@ -71,12 +71,23 @@ public:
 
 	void connect();
 
-	void registerUser(std::string user, MessageUProtocol::ClientId& result_clientId);
-	void getClients(std::vector<MessageUProtocol::User>* result);
-	void getPublicKey(MessageUProtocol::ClientId& client_id, MessageUProtocol::PublicKey& result);
-	void pullMessages(MessageUProtocol::ClientId& client_id, std::vector<MessageUProtocol::User>& savedUsers);
-	void sendText(std::string username, std::string text);
-	void getSymKey(MessageUProtocol::ClientId& my_clientId, MessageUProtocol::ClientId& dest_clientId);
+	void registerUser(
+		std::string user, 
+		MessageUProtocol::ClientId& result_clientId);
+	void getClients(
+		const MessageUProtocol::ClientId& myClientId,
+		std::vector<MessageUProtocol::User>* result);
+	void getPublicKey(
+		const MessageUProtocol::ClientId& myClientId, 
+		const MessageUProtocol::ClientId& dest_client_id, 
+		MessageUProtocol::PublicKey& result);
+	void pullMessages(
+		MessageUProtocol::ClientId& client_id, 
+		std::vector<MessageUProtocol::User>& savedUsers);
+	void sendText(
+		std::string username, std::string text);
+	void getSymKey(
+		MessageUProtocol::ClientId& my_clientId, MessageUProtocol::ClientId& dest_clientId);
 	void sendSymKey(
 		MessageUProtocol::ClientId& myClientId, 
 		MessageUProtocol::SymmetricKey& mySymmKey, 

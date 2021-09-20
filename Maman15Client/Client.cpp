@@ -147,20 +147,10 @@ ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 	return header;
 }
 
-void Client::getClients(vector<User>* result) {
+void Client::getClients(const ClientId& myClientId, vector<User>* result) {
 	LOG("Getting clients...");
 
-	ClientId dest_clientId = { 0 };
-	try {
-		FileManager::getSavedClientId(dest_clientId);
-	}
-	catch (exception& e) {
-		LOG(e.what());
-		LOG("Error while getting client id from " << FILE_REGISTER);
-		return;
-	}
-	
-	request.pack_clientId(dest_clientId);
+	request.pack_clientId(myClientId);
 	request.pack_version();
 	request.pack_code(RequestCodes::reqClientList);
 	request.pack_payloadSize(0);
@@ -201,21 +191,17 @@ void Client::getClients(vector<User>* result) {
 
 }
 
-void Client::getPublicKey(ClientId& client_id, PublicKey& result) {
+void Client::getPublicKey(const ClientId& myClientId, const ClientId& dest_client_id, PublicKey& result) {
 	LOG("Getting public key...");
 
-	//First, get my own client id
-	ClientId my_client_id = { 0 };
-	FileManager::getSavedClientId(my_client_id);
-
 	//Pack header
-	request.pack_clientId(my_client_id);
+	request.pack_clientId(myClientId);
 	request.pack_version();
 	request.pack_code(RequestCodes::reqPublicKey);
 	request.pack_payloadSize(S_CLIENT_ID);
 	
 	//Pack payload
-	request.pack_clientId(client_id);
+	request.pack_clientId(dest_client_id);
 
 	//Send request
 	sendRequest();
@@ -235,7 +221,6 @@ void Client::getPublicKey(ClientId& client_id, PublicKey& result) {
 		hexify((const unsigned char*)pubKey, S_PUBLIC_KEY);
 
 		memcpy(result, pubKey, S_PUBLIC_KEY);
-		LOG("Public key saved!");
 	}
 	catch (exception& e) {
 		LOG(e.what());
