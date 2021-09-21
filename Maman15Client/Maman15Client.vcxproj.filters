@@ -90,6 +90,9 @@
     <ClCompile Include="MyUser.cpp">
       <Filter>Source Files\Client</Filter>
     </ClCompile>
+    <ClCompile Include="MessageU.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ProtocolDefenitions.h">
@@ -145,6 +148,9 @@
     </ClInclude>
     <ClInclude Include="MyUser.h">
       <Filter>Header Files\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="MessageU.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

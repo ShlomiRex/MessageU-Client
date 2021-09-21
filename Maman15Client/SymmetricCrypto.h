@@ -6,11 +6,6 @@
 
 //using namespace MessageUProtocol; 
 
-typedef struct {
-	MessageUProtocol::User user;
-	MessageUProtocol::SymmetricKey symKey;
-} SecureChannel;
-
 class SymmetricCrypto
 {
 public:

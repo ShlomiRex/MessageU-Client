@@ -6,6 +6,8 @@
 class MyUser
 {
 private:
+	bool registered = false;
+
 	MessageUProtocol::ClientId client_id;
 	MessageUProtocol::Username username;
 	MessageUProtocol::PublicKey pubkey;
