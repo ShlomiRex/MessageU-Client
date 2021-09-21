@@ -12,12 +12,12 @@ Menu::~Menu() {
 
 }
 
-void Menu::setUsername(string& username)
+void Menu::setMyUsername(string& username)
 {
 	memcpy(me.username, username.c_str(), S_USERNAME);
 }
 
-void Menu::setClientId(MessageUProtocol::ClientId& clientId)
+void Menu::setMyClientId(MessageUProtocol::ClientId& clientId)
 {
 	memcpy(me.client_id, clientId, S_CLIENT_ID);
 }
@@ -25,8 +25,19 @@ void Menu::setClientId(MessageUProtocol::ClientId& clientId)
 void Menu::setUserPublicKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::PublicKey& pubkey)
 {
 	for (auto& x : users) {
-		if (strncmp(x.client_id, userClientId, S_CLIENT_ID) == 0) {
+		if (buffer_compare(x.client_id, userClientId, S_CLIENT_ID)) {
 			memcpy(x.publicKey, pubkey, S_PUBLIC_KEY);
+			return;
+		}
+	}
+	throw MenuUserNotFound();
+}
+
+void Menu::setUserSymmKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::SymmetricKey& symmkey)
+{
+	for (auto& x : users) {
+		if (buffer_compare(x.client_id, userClientId, S_CLIENT_ID)) {
+			memcpy(x.symmKey, symmkey, S_SYMMETRIC_KEY);
 			return;
 		}
 	}
@@ -101,6 +112,14 @@ void Menu::showUsers() const
 			else {
 				LOG("\tPublic key: Aquired");
 			}
+
+			//Check symm key is not zeroes array
+			if (is_zero_filled(user.symmKey, S_SYMMETRIC_KEY)) {
+				LOG("\tSymmetric key: Not aquired");
+			}
+			else {
+				LOG("\tSymmetric key: Aquired");
+			}
 			LOG("");
 		}
 	}
@@ -164,7 +183,7 @@ void Menu::readAndSetMyUsername()
 		if (username.size() >= 1 && username.size() <= S_USERNAME)
 			break;
 	}
-	setUsername(username);
+	setMyUsername(username);
 }
 
 const MenuUser Menu::chooseUser() const

@@ -81,7 +81,7 @@ public:
 		const MessageUProtocol::ClientId& myClientId, 
 		const MessageUProtocol::ClientId& dest_client_id, 
 		MessageUProtocol::PublicKey& result);
-	void pullMessages(
+	const std::vector<MessageUProtocol::MessageResponse>* pullMessages(
 		const MessageUProtocol::ClientId& client_id, 
 		const std::vector<MessageUProtocol::User>& savedUsers);
 	void sendText(

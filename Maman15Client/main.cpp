@@ -1,23 +1,9 @@
 ﻿#include "Client.h"
-//#include "InteractiveMenu.h" //TODO: Remove
 #include <boost/filesystem/operations.hpp>
 #include "Debug.h"
 #include "AsymmetricCrypto.h"
 #include "ProtocolDefenitions.h"
 #include "Menu.h"
-
-//TEST
-/*
-#include <files.h>
-#include <modes.h>
-#include <osrng.h>
-#include <rsa.h>
-#include <sha.h>
-#include <hex.h>
-#include <base64.h>
-#include "RSAWrapper.h"
-*/
-//TEST
 
 #define DEBUG_PREFIX "[main] "
 
@@ -36,7 +22,7 @@ void updateUsers(Menu& menuobj, vector<MenuUser>* serverResponse) {
 }
 
 //We re-use this code twice: explicitly (by user input) or by asking him if he wants to fetch it automatically.
-void registerMyself(Menu& menu, Client& client) {
+void requestGetClients(Menu& menu, Client& client) {
 	//Temporary store users from the server response
 	vector<MenuUser> menuUsers;
 
@@ -66,38 +52,44 @@ void registerMyself(Menu& menu, Client& client) {
 	}
 }
 
-void aquirePublicKey(Menu& menu, Client& client) {
-	menu.showUsers();
-
-	MenuUser destUser = menu.chooseUser();
-
-	client.connect();
-
+void aquirePublicKey(Menu& menu, Client& client, MenuUser& destUser) {
 	ClientId myClientId;
 	menu.getMyClientId(myClientId);
 	//Update 'destUser' with new public key
+	client.connect();
 	client.getPublicKey(myClientId, destUser.client_id, destUser.publicKey);
 
 	//Get that public key and update menu users
 	menu.setUserPublicKey(destUser.client_id, destUser.publicKey);
 }
 
+void aquirePublicKey(Menu& menu, Client& client) {
+	menu.showUsers();
+	MenuUser destUser = menu.chooseUser();
+	aquirePublicKey(menu, client, destUser);
+}
+
+void requestRegisterMyself(Menu& menu, Client& client) {
+	string myUsername = menu.getUsername();
+	ClientId myClientId;
+	menu.getMyClientId(myClientId);
+
+	if (myUsername.size() == 0) {
+		menu.readAndSetMyUsername();
+
+		client.connect();
+		myUsername = menu.getUsername();
+		client.registerUser(myUsername, myClientId);
+
+		menu.setRegistered();
+	}
+	else {
+		LOG("'" << myUsername << "', your already registered!");
+	}
+}
+
 int main()
 {
-	//AsymmetricCrypto::test();
-	//rsa_example();
-
-	
-	/*
-	string pubkey, privkey;
-	AsymmetricCrypto::generateKeys(pubkey, privkey);
-	PublicKey pub100;
-	memcpy(pub100, pubkey.c_str(), S_PUBLIC_KEY);
-
-	string cipher = AsymmetricCrypto::encrypt("Hello!", pub100);
-	string decrypted = AsymmetricCrypto::decrypt(cipher, privkey);
-	*/
-
 	DEBUG("Reading from " << FILE_SERVER);
 	ifstream server_info(FILE_SERVER);
 	char buff[S_FILE_SERVER] = { 0 };
@@ -126,8 +118,8 @@ int main()
 		FileManager::getSavedClientId(myClientId);
 		myUsername = FileManager::getSavedUsername(); //Username helps identify (for debugging and also its nice) who I am, what username I currently use.
 
-		menu.setUsername(myUsername);
-		menu.setClientId(myClientId);
+		menu.setMyUsername(myUsername);
+		menu.setMyClientId(myClientId);
 
 		menu.setRegistered();
 	}
@@ -153,21 +145,10 @@ int main()
 
 		try {
 			if (choice == ClientChoices::registerUser) {
-				if (myUsername.size() == 0) {
-					menu.readAndSetMyUsername();
-
-					client.connect();
-					myUsername = menu.getUsername();
-					client.registerUser(myUsername, myClientId);
-
-					menu.setRegistered();
-				}
-				else {
-					LOG("'" << myUsername << "', your already registered!");
-				}
+				requestRegisterMyself(menu, client);
 			}
 			else if (choice == ClientChoices::reqClientList) {
-				registerMyself(menu, client);
+				requestGetClients(menu, client);
 			}
 			else if (choice == ClientChoices::reqPublicKey) {
 				aquirePublicKey(menu, client);
@@ -189,6 +170,9 @@ int main()
 				LOG("Not yet implimented");
 			}
 			else if (choice == ClientChoices::reqPullWaitingMessages) {
+				if (menu.isRegistered() == false) {
+					throw NotRegistered();
+				}
 				//Get uses saved in memory
 				auto users = menu.getUsers();
 
@@ -208,47 +192,52 @@ int main()
 
 				//Let client do the rest
 				client.connect();
-				client.pullMessages(myClientId, castUsers);
+				const vector<MessageResponse>* messages = client.pullMessages(myClientId, castUsers);
+				if (messages != nullptr) {
+					for (const auto& msg : *messages) {
+						MessageTypes _type = (MessageTypes)msg.msgType;
+						if (_type == MessageTypes::sendSymmetricKey) {
+							//Save the symmetric key
+
+							LOG("Symmetric key (" << msg.msgSize << " bytes):");
+							hexify((const unsigned char*)msg.msgContent, msg.msgSize);
+
+							SymmetricKey symmkey;
+							memcpy(symmkey, msg.msgContent, S_SYMMETRIC_KEY); //TODO: I know msg.msgContent is greater than S_SYMMETRIC_KEY, we need to send correct cipher, not "Super Secret"
+							menu.setUserSymmKey(msg.sender.client_id, symmkey);
+						}
+					}
+					//Free vector pointer
+					delete messages;
+				}
+				LOG("Finished handling pull messages request.");
 			}
 			else if (choice == ClientChoices::sendSymmetricKey) {
-				if (menu.isRegistered()) {
-					menu.showUsers();
-					MenuUser destUser = menu.chooseUser();
-
-					if (is_zero_filled(destUser.publicKey, S_PUBLIC_KEY)) {
-						LOG("You need to get this user's public key.");
-						stringstream ss;
-						ss << "Would you like me to automatically get the public key of '" << destUser.username << "'?";
-						if (menu.yesNoChoice(ss.str(), true)) {
-							aquirePublicKey(menu, client);
-						}
-						else {
-							LOG("Returning to main menu.");
-						}
-					}
-					else {
-						//TODO: Impliment
-					}
-				}
-				else {
-					//we can do this because server will return error every time because my username is empty (which is not allowed).
-					LOG("You must register first.");
+				if (menu.isRegistered() == false) {
+					throw NotRegistered();
 				}
 
-				/*
+				menu.showUsers();
+				MenuUser destUser = menu.chooseUser();
+
+				if (is_zero_filled(destUser.publicKey, S_PUBLIC_KEY)) {
+					throw EmptyPublicKey(destUser);
+				}
+
 				//Generate new symmetric key
-				SymmetricKey symkey;
-				SymmetricCrypto::generateKey(symkey);
+				SymmetricKey symkey = { 0 };
+				//SymmetricCrypto::generateKey(symkey);
 
 				//Create 
 				//SecureChannel sec;
 				//memcpy(sec.user.client_id, dest_clientId, S_CLIENT_ID);
 
+				//TODO: Send a secret message first, test it works to decrypt it, and if it works, generate symm key and send it instead
+				strncpy_s(symkey, "Super Secret", 13);
 
 				client.connect();
-				client.sendSymKey(myClientId, symkey, dest_clientId, savedPubKey);
-				*/
-
+				//We encrypt with destUser's public key
+				client.sendSymKey(myClientId, symkey, destUser.client_id, destUser.publicKey);
 			}
 			else if (choice == ClientChoices::exitProgram) {
 				break;
@@ -259,14 +248,37 @@ int main()
 		}
 		catch (EmptyClientsList& e) {
 			LOG(e.what());
-			/*
+			
 			if (menu.yesNoChoice("Would you like me to get clients list automatically?", true)) {
-				//registerMyself(client, myClientId, menu);
+				requestGetClients(menu, client);
 			}
 			else {
 				LOG("Returning to main menu.");
 			}
-			*/
+		}
+		catch (NotRegistered& e) {
+			LOG(e.what());
+
+			if (menu.yesNoChoice("Would you like me to register you now?", true)) {
+				requestRegisterMyself(menu, client);
+			}
+			else {
+				LOG("Returning to main menu.");
+			}
+		}
+		catch (EmptyPublicKey& e) {
+			LOG(e.what());
+
+			auto destUser = e.getDestUser();
+
+			stringstream ss;
+			ss << "Would you like me to automatically get the public key of '" << destUser.username << "'?";
+			if (menu.yesNoChoice(ss.str(), true)) {
+				aquirePublicKey(menu, client, destUser);
+			}
+			else {
+				LOG("Returning to main menu.");
+			}
 		}
 		catch (exception& e) {
 			LOG(e.what());

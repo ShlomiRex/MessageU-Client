@@ -72,6 +72,7 @@ namespace MessageUProtocol {
 	//Message Response header fields
 	typedef uint32_t MessageId;
 	typedef uint32_t MessageSize;
+	typedef const char* MessageContent;
 
 	typedef struct {
 		ClientId client_id;
@@ -79,11 +80,12 @@ namespace MessageUProtocol {
 	} User;
 
 	typedef struct {
-		ClientId dest_clientId;
+		User sender;
+		MessageId msgId;
 		MessageType msgType;
-		ContentSize contentSize;
-	} SendMsgRequestHeader;
-
+		MessageSize msgSize;
+		MessageContent msgContent;
+	} MessageResponse;
 
 
 }

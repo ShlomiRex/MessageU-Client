@@ -20,10 +20,18 @@ enum class ClientChoices {
 	exitProgram = 0
 };
 
-typedef struct {
+typedef struct MenuUser {
 	MessageUProtocol::ClientId client_id;
 	MessageUProtocol::Username username;
 	MessageUProtocol::PublicKey publicKey;
+	MessageUProtocol::SymmetricKey symmKey;
+
+	MenuUser() {
+		memset(client_id, 0, S_CLIENT_ID);
+		memset(username, 0, S_USERNAME);
+		memset(publicKey, 0, S_PUBLIC_KEY);
+		memset(symmKey, 0, S_SYMMETRIC_KEY);
+	}
 } MenuUser;
 
 class Menu
@@ -45,10 +53,11 @@ public:
 	const std::vector<MenuUser> getUsers();
 
 	//Sets
-	void setUsername(std::string& username);
-	void setClientId(MessageUProtocol::ClientId& clientId);
+	void setMyUsername(std::string& username);
+	void setMyClientId(MessageUProtocol::ClientId& clientId);
 	friend void updateUsers(Menu& menuobj, std::vector<MenuUser>* serverResponse);
 	void setUserPublicKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::PublicKey& pubkey);
+	void setUserSymmKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::SymmetricKey& symmkey);
 	void setRegistered();
 
 	//Prints
@@ -66,12 +75,38 @@ public:
 
 struct EmptyClientsList : public std::exception {
 	const char* what() const throw() {
-		return "You must first get clients list from server (in order to choose destination user).";
+		return "You must first get clients list from server (in order to choose destination user, or to map users and client ids).";
 	}
 };
 
 struct MenuUserNotFound : public std::exception {
 	const char* what() const throw() {
 		return "Couldn't find user from users vector.";
+	}
+};
+
+struct NotRegistered : public std::exception {
+	const char* what() const throw() {
+		return "You must register first.";
+	}
+};
+
+struct EmptyPublicKey : public std::exception {
+private:
+	MenuUser destUser;
+	std::string mystr;
+public:
+	EmptyPublicKey(MenuUser& destUser) : destUser(destUser) {
+		std::stringstream ss;
+		ss << "You need to get " << destUser.username << "'s public key.";
+
+		mystr = ss.str();
+	}
+	const char* what() const throw() {
+		return mystr.c_str();
+	}
+
+	MenuUser getDestUser() {
+		return destUser;
 	}
 };

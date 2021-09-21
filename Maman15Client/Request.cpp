@@ -73,22 +73,29 @@ void Request::pack_client_id(const ClientId& client_id)
 	writer.write(client_id, S_CLIENT_ID);
 }
 
+void Request::pack_message_header(const MessageHeader& msgHeader)
+{
+	//Pack client id
+	DEBUG("Packing message client id (" << S_CLIENT_ID << " bytes): ");
+#ifdef DEBUGGING
+	hexify((const unsigned char*)msgHeader.dest_clientId, S_CLIENT_ID);
+#endif
+	writer.write(msgHeader.dest_clientId, S_CLIENT_ID);
+
+	//Pack Message Type
+	MessageType _type = (MessageType)msgHeader.messageType;
+	DEBUG("Packing message type (1 byte): " << _type);
+	writer.write1byte(_type);
+
+	//Pack Contnet Size
+	DEBUG("Packing message content size (4 bytes): " << msgHeader.contentSize);
+	writer.write4bytes(msgHeader.contentSize);
+}
+
 size_t Request::getPacketSize() {
 	return writer.getOffset();
 }
 
 const char* Request::getPacket() {
 	return writer.getBuffer();
-}
-
-void Request::pack_message_type(MessageTypes type) {
-	//Convert enum type to required size
-	MessageType _type = (MessageType)type;
-	DEBUG("Packing message type (1 bytes): " << _type);
-	writer.write1byte(_type);
-}
-
-void Request::pack_content_size(ContentSize size) {
-	DEBUG("Packing content size (4 bytes): " << size);
-	writer.write4bytes(size);
 }

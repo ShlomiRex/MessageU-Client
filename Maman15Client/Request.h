@@ -5,6 +5,7 @@
 #include "ProtocolDefenitions.h"
 #include "Utils.h"
 #include "Debug.h"
+#include "MessageRequest.h"
 
 //using namespace std;
 //using namespace MessageUProtocol;
@@ -32,8 +33,8 @@ public:
 	void pack_client_id(const MessageUProtocol::ClientId& client_id);
 
 	//Message packing
-	void pack_message_type(MessageUProtocol::MessageTypes type);
-	void pack_content_size(MessageUProtocol::ContentSize size);
+	void pack_message_header(const MessageHeader& msgHeader);
+	//To pack message content, just pack payload.
 
 	size_t getPacketSize();
 	const char* getPacket();

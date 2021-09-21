@@ -42,3 +42,15 @@ bool is_zero_filled(const char* arr, size_t s_arr)
     }
     return true;
 }
+
+bool buffer_compare(const char* buff1, const char* buff2, size_t s_buffers)
+{
+    for (size_t i = 0; i < s_buffers; i++) {
+        char c1 = buff1[i];
+        char c2 = buff2[i];
+        if (c1 != c2) {
+            return false;
+        }
+    }
+    return true;
+}
