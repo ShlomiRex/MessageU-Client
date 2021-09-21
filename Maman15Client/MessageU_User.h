@@ -3,7 +3,7 @@
 #include "ProtocolDefenitions.h"
 #include <string>
 
-class MyUser
+class MessageU_User
 {
 private:
 	bool registered = false;
@@ -14,7 +14,7 @@ private:
 	MessageUProtocol::PrivateKey privkey;
 	MessageUProtocol::SymmetricKey symmkey;
 public:
-	MyUser();
+	MessageU_User();
 
 	//Getters
 	void getClientId(MessageUProtocol::ClientId& result) const;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ProtocolDefenitions.h"
-#include "MyUser.h"
+#include "MessageU_User.h"
 #include "Menu.h"
 #include "Client.h"
 
@@ -14,7 +14,7 @@ class MessageU
 private:
 	std::string ip, port;
 
-	MyUser me;
+	MessageU_User me;
 	Menu menu;
 
 public:

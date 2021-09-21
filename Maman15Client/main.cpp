@@ -4,7 +4,7 @@
 #include "AsymmetricCrypto.h"
 #include "ProtocolDefenitions.h"
 #include "Menu.h"
-#include "MyUser.h"
+#include "MessageU_User.h"
 #include "MessageU.h"
 
 #define DEBUG_PREFIX "[main] "

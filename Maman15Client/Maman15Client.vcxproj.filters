@@ -51,9 +51,6 @@
     <ClCompile Include="Base64Wrapper.cpp">
       <Filter>Source Files\Crypto</Filter>
     </ClCompile>
-    <ClCompile Include="InteractiveMenu.cpp">
-      <Filter>Source Files\Menu</Filter>
-    </ClCompile>
     <ClCompile Include="Client.cpp">
       <Filter>Source Files\Client</Filter>
     </ClCompile>
@@ -87,7 +84,7 @@
     <ClCompile Include="Menu.cpp">
       <Filter>Source Files\Menu</Filter>
     </ClCompile>
-    <ClCompile Include="MyUser.cpp">
+    <ClCompile Include="MessageU_User.cpp">
       <Filter>Source Files\Client</Filter>
     </ClCompile>
     <ClCompile Include="MessageU.cpp">
@@ -116,9 +113,6 @@
     <ClInclude Include="Request.h">
       <Filter>Header Files\Client</Filter>
     </ClInclude>
-    <ClInclude Include="InteractiveMenu.h">
-      <Filter>Header Files\Menu</Filter>
-    </ClInclude>
     <ClInclude Include="BufferUtils.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
@@ -146,7 +140,7 @@
     <ClInclude Include="Menu.h">
       <Filter>Header Files\Menu</Filter>
     </ClInclude>
-    <ClInclude Include="MyUser.h">
+    <ClInclude Include="MessageU_User.h">
       <Filter>Header Files\Client</Filter>
     </ClInclude>
     <ClInclude Include="MessageU.h">

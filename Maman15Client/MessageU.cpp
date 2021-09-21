@@ -10,7 +10,7 @@ void updateUsers(Menu& menuobj, vector<MenuUser>* serverResponse) {
 	menuobj.users.assign(serverResponse->begin(), serverResponse->end());
 }
 
-void aquirePublicKey(MyUser& me, Menu& menu, Client& client, MenuUser& destUser) {
+void aquirePublicKey(MessageU_User& me, Menu& menu, Client& client, MenuUser& destUser) {
 	ClientId myClientId;
 	me.getClientId(myClientId);
 	//Update 'destUser' with new public key
