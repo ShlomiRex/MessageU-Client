@@ -4,6 +4,7 @@
 #include "AsymmetricCrypto.h"
 #include "ProtocolDefenitions.h"
 #include "Menu.h"
+#include "MyUser.h"
 
 #define DEBUG_PREFIX "[main] "
 
@@ -22,7 +23,7 @@ void updateUsers(Menu& menuobj, vector<MenuUser>* serverResponse) {
 }
 
 //We re-use this code twice: explicitly (by user input) or by asking him if he wants to fetch it automatically.
-void requestGetClients(Menu& menu, Client& client) {
+void requestGetClients(MyUser& me, Menu& menu, Client& client) {
 	//Temporary store users from the server response
 	vector<MenuUser> menuUsers;
 
@@ -31,7 +32,7 @@ void requestGetClients(Menu& menu, Client& client) {
 
 	client.connect();
 	ClientId myClientId;
-	menu.getMyClientId(myClientId);
+	me.getClientId(myClientId);
 	client.getClients(myClientId, &users);
 
 	for (const auto& x : users) {
@@ -52,9 +53,9 @@ void requestGetClients(Menu& menu, Client& client) {
 	}
 }
 
-void aquirePublicKey(Menu& menu, Client& client, MenuUser& destUser) {
+void aquirePublicKey(MyUser& me, Menu& menu, Client& client, MenuUser& destUser) {
 	ClientId myClientId;
-	menu.getMyClientId(myClientId);
+	me.getClientId(myClientId);
 	//Update 'destUser' with new public key
 	client.connect();
 	client.getPublicKey(myClientId, destUser.client_id, destUser.publicKey);
@@ -63,28 +64,25 @@ void aquirePublicKey(Menu& menu, Client& client, MenuUser& destUser) {
 	menu.setUserPublicKey(destUser.client_id, destUser.publicKey);
 }
 
-void aquirePublicKey(Menu& menu, Client& client) {
+void aquirePublicKey(MyUser& me, Menu& menu, Client& client) {
 	menu.showUsers();
 	MenuUser destUser = menu.chooseUser();
-	aquirePublicKey(menu, client, destUser);
+	aquirePublicKey(me, menu, client, destUser);
 }
 
-void requestRegisterMyself(Menu& menu, Client& client) {
-	string myUsername = menu.getUsername();
-	ClientId myClientId;
-	menu.getMyClientId(myClientId);
-
-	if (myUsername.size() == 0) {
-		menu.readAndSetMyUsername();
+void requestRegisterMyself(MyUser& me, Menu& menu, Client& client) {
+	if (me.getUsername().size() == 0) {
+		menu.readUsername();
 
 		client.connect();
-		myUsername = menu.getUsername();
-		client.registerUser(myUsername, myClientId);
+		ClientId myClientId;
+		me.getClientId(myClientId);
+		client.registerUser(me.getUsername(), myClientId);
 
 		menu.setRegistered();
 	}
 	else {
-		LOG("'" << myUsername << "', your already registered!");
+		LOG("'" << me.getUsername() << "', your already registered!");
 	}
 }
 
@@ -109,6 +107,7 @@ int main()
 	DEBUG("Port: " << port);
 
 	Menu menu;
+	MyUser me;
 
 	try {
 		//Read me.info and set my username, clientid
@@ -118,8 +117,8 @@ int main()
 		FileManager::getSavedClientId(myClientId);
 		myUsername = FileManager::getSavedUsername(); //Username helps identify (for debugging and also its nice) who I am, what username I currently use.
 
-		menu.setMyUsername(myUsername);
-		menu.setMyClientId(myClientId);
+		me.setUsername(myUsername);
+		me.setClientId(myClientId);
 
 		menu.setRegistered();
 	}
@@ -132,26 +131,21 @@ int main()
 
 
 	while (true) {
-		menu.show();
-		ClientChoices choice = menu.get_choice();
+		menu.show(me.getUsername());
+		ClientChoices choice = menu.get_choice(me.getUsername());
 
 		//Create client for the request.
 		Client client(ip, port, CLIENT_VERSION);
 
-		//Read my own info
-		string myUsername = menu.getUsername();
-		ClientId myClientId = { 0 };
-		menu.getMyClientId(myClientId);
-
 		try {
 			if (choice == ClientChoices::registerUser) {
-				requestRegisterMyself(menu, client);
+				requestRegisterMyself(me, menu, client);
 			}
 			else if (choice == ClientChoices::reqClientList) {
-				requestGetClients(menu, client);
+				requestGetClients(me, menu, client);
 			}
 			else if (choice == ClientChoices::reqPublicKey) {
-				aquirePublicKey(menu, client);
+				aquirePublicKey(me, menu, client);
 			}
 			else if (choice == ClientChoices::sendMessage) {
 				//TODO: Impliment
@@ -163,6 +157,8 @@ int main()
 				MenuUser destUser = menu.chooseUser();
 				
 				client.connect();
+				ClientId myClientId;
+				me.getClientId(myClientId);
 				client.getSymKey(myClientId, destUser.client_id);
 			}
 			else if (choice == ClientChoices::sendFile) {
@@ -192,12 +188,19 @@ int main()
 
 				//Let client do the rest
 				client.connect();
+				ClientId myClientId;
+				me.getClientId(myClientId);
 				const vector<MessageResponse>* messages = client.pullMessages(myClientId, castUsers);
 				if (messages != nullptr) {
 					for (const auto& msg : *messages) {
 						MessageTypes _type = (MessageTypes)msg.msgType;
 						if (_type == MessageTypes::sendSymmetricKey) {
 							//Save the symmetric key
+
+							string symmkey_cipher(msg.msgContent);
+							PublicKey myPubKey;
+							me.getPublicKey(myPubKey);
+							string plainSymmKey = AsymmetricCrypto::decrypt(symmkey_cipher, myPubKey);
 
 							LOG("Symmetric key (" << msg.msgSize << " bytes):");
 							hexify((const unsigned char*)msg.msgContent, msg.msgSize);
@@ -237,6 +240,8 @@ int main()
 
 				client.connect();
 				//We encrypt with destUser's public key
+				ClientId myClientId;
+				me.getClientId(myClientId);
 				client.sendSymKey(myClientId, symkey, destUser.client_id, destUser.publicKey);
 			}
 			else if (choice == ClientChoices::exitProgram) {
@@ -250,7 +255,7 @@ int main()
 			LOG(e.what());
 			
 			if (menu.yesNoChoice("Would you like me to get clients list automatically?", true)) {
-				requestGetClients(menu, client);
+				requestGetClients(me, menu, client);
 			}
 			else {
 				LOG("Returning to main menu.");
@@ -260,7 +265,7 @@ int main()
 			LOG(e.what());
 
 			if (menu.yesNoChoice("Would you like me to register you now?", true)) {
-				requestRegisterMyself(menu, client);
+				requestRegisterMyself(me, menu, client);
 			}
 			else {
 				LOG("Returning to main menu.");
@@ -274,7 +279,7 @@ int main()
 			stringstream ss;
 			ss << "Would you like me to automatically get the public key of '" << destUser.username << "'?";
 			if (menu.yesNoChoice(ss.str(), true)) {
-				aquirePublicKey(menu, client, destUser);
+				aquirePublicKey(me, menu, client, destUser);
 			}
 			else {
 				LOG("Returning to main menu.");

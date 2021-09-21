@@ -157,6 +157,7 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
     <ClCompile Include="FileManager.cpp" />
     <ClCompile Include="Menu.cpp" />
     <ClCompile Include="MessageRequest.cpp" />
+    <ClCompile Include="MyUser.cpp" />
     <ClCompile Include="Request.cpp" />
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="InteractiveMenu.cpp" />
@@ -176,6 +177,7 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
     <ClInclude Include="FileManager.h" />
     <ClInclude Include="Menu.h" />
     <ClInclude Include="MessageRequest.h" />
+    <ClInclude Include="MyUser.h" />
     <ClInclude Include="Request.h" />
     <ClInclude Include="Client.h" />
     <ClInclude Include="ProtocolDefenitions.h" />

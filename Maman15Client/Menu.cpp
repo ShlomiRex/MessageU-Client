@@ -4,22 +4,7 @@ using namespace std;
 using namespace MessageUProtocol;
 
 Menu::Menu() : registered(false) {
-	memset(me.client_id, 0, S_CLIENT_ID);
-	memset(me.username, 0, S_USERNAME);
-}
 
-Menu::~Menu() {
-
-}
-
-void Menu::setMyUsername(string& username)
-{
-	memcpy(me.username, username.c_str(), S_USERNAME);
-}
-
-void Menu::setMyClientId(MessageUProtocol::ClientId& clientId)
-{
-	memcpy(me.client_id, clientId, S_CLIENT_ID);
 }
 
 void Menu::setUserPublicKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::PublicKey& pubkey)
@@ -49,16 +34,6 @@ void Menu::setRegistered()
 	registered = true;
 }
 
-string Menu::getUsername() const
-{
-	return me.username;
-}
-
-void Menu::getMyClientId(ClientId& result) const
-{
-	memcpy(result, me.client_id, S_CLIENT_ID);
-}
-
 bool Menu::isRegistered()
 {
 	return registered;
@@ -69,9 +44,9 @@ const std::vector<MenuUser> Menu::getUsers()
 	return users;
 }
 
-void Menu::show() const {
-	if ((string)(me.username) != "") {
-		LOG("Hello " << me.username << "!");
+void Menu::show(const string& myUsername) const {
+	if ((string)(myUsername) != "") {
+		LOG("Hello " << myUsername << "!");
 	}
 
 #ifdef DEBUGGING
@@ -128,7 +103,7 @@ void Menu::showUsers() const
 	}
 }
 
-ClientChoices Menu::get_choice() const
+ClientChoices Menu::get_choice(const string& myUsername) const
 {
 	string line;
 
@@ -169,21 +144,20 @@ ClientChoices Menu::get_choice() const
 		catch (exception& e) {
 			LOG(e.what());
 			LOG("Please chooce valid entry.\n\n");
-			show();
+			show(myUsername);
 		}
 	}
 }
 
-void Menu::readAndSetMyUsername()
+string Menu::readUsername()
 {
 	string username = "";
 	while (true) {
 		LOG("Please type desired username (non-empty and maximum " << S_USERNAME << " characters): ");
 		getline(cin, username); //for now, allow any string as username. if server is not happy we get error response anyway.
 		if (username.size() >= 1 && username.size() <= S_USERNAME)
-			break;
+			return username;
 	}
-	setMyUsername(username);
 }
 
 const MenuUser Menu::chooseUser() const

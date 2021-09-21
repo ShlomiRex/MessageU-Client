@@ -37,40 +37,32 @@ typedef struct MenuUser {
 class Menu
 {
 private:
-	MessageUProtocol::User me;
 	//We need write access, because of GetClients request. So we give friendship to 'updateUsers' function.
 	std::vector<MenuUser> users;
 	bool registered;
 
 public:
 	Menu();
-	~Menu();
 
 	//Gets
-	std::string getUsername() const;
-	void getMyClientId(MessageUProtocol::ClientId& result) const;
 	bool isRegistered();
 	const std::vector<MenuUser> getUsers();
 
 	//Sets
-	void setMyUsername(std::string& username);
-	void setMyClientId(MessageUProtocol::ClientId& clientId);
 	friend void updateUsers(Menu& menuobj, std::vector<MenuUser>* serverResponse);
 	void setUserPublicKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::PublicKey& pubkey);
 	void setUserSymmKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::SymmetricKey& symmkey);
 	void setRegistered();
 
 	//Prints
-	void show() const;
+	void show(const std::string& myUsername) const;
 	void showUsers() const;
 
 	//Read input
-	ClientChoices get_choice() const;
+	ClientChoices get_choice(const std::string& myUsername) const;
 	const MenuUser chooseUser() const;
 	bool yesNoChoice(std::string prompt, bool yesIsDefaultChoice);
-
-	//Special / logic
-	void readAndSetMyUsername();
+	std::string readUsername();
 };
 
 struct EmptyClientsList : public std::exception {
