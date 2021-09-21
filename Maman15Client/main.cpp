@@ -148,7 +148,7 @@ int main()
 
 		//Read my own info
 		string myUsername = menu.getUsername();
-		ClientId myClientId;
+		ClientId myClientId = { 0 };
 		menu.getMyClientId(myClientId);
 
 		try {
@@ -189,10 +189,26 @@ int main()
 				LOG("Not yet implimented");
 			}
 			else if (choice == ClientChoices::reqPullWaitingMessages) {
-				//TODO: Impliment
-				LOG("Not yet implimented");
-				//client.connect();
-				//client.pullMessages(myClientId, savedUsers);
+				//Get uses saved in memory
+				auto users = menu.getUsers();
+
+				if (users.size() == 0) {
+					throw EmptyClientsList();
+				}
+
+				//Create vector of users (without public key) to call pull messages
+				vector<MessageUProtocol::User> castUsers;
+				for (const auto& x : users) {
+					//Read google, push_back copies User, so it won't be freed after loop.
+					MessageUProtocol::User tmpUser;
+					memcpy(tmpUser.client_id, x.client_id, S_CLIENT_ID);
+					memcpy(tmpUser.username, x.username, S_USERNAME);
+					castUsers.push_back(tmpUser);
+				}
+
+				//Let client do the rest
+				client.connect();
+				client.pullMessages(myClientId, castUsers);
 			}
 			else if (choice == ClientChoices::sendSymmetricKey) {
 				if (menu.isRegistered()) {

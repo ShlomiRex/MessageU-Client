@@ -82,8 +82,8 @@ public:
 		const MessageUProtocol::ClientId& dest_client_id, 
 		MessageUProtocol::PublicKey& result);
 	void pullMessages(
-		MessageUProtocol::ClientId& client_id, 
-		std::vector<MessageUProtocol::User>& savedUsers);
+		const MessageUProtocol::ClientId& client_id, 
+		const std::vector<MessageUProtocol::User>& savedUsers);
 	void sendText(
 		std::string username, std::string text);
 	void getSymKey(

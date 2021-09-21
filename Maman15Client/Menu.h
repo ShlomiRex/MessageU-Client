@@ -42,6 +42,7 @@ public:
 	std::string getUsername() const;
 	void getMyClientId(MessageUProtocol::ClientId& result) const;
 	bool isRegistered();
+	const std::vector<MenuUser> getUsers();
 
 	//Sets
 	void setUsername(std::string& username);

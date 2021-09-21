@@ -301,7 +301,7 @@ MessageSize Client::recvMessageSize() {
 }
 
 void Client::getSymKey(ClientId& my_clientId, ClientId& dest_clientId) {
-	LOG("Getting symmetric key...");
+	LOG("Sending symmetric key request...");
 
 	//Request Header
 	request.pack_clientId(my_clientId);
@@ -343,7 +343,7 @@ void Client::getSymKey(ClientId& my_clientId, ClientId& dest_clientId) {
 	LOG("And message ID: " << messageId);
 }
 
-void Client::pullMessages(ClientId& client_id, vector<User>& savedUsers) {
+void Client::pullMessages(const ClientId& client_id, const vector<User>& savedUsers) {
 	LOG("Pulling waiting messages...");
 
 	//Request Header
@@ -390,7 +390,7 @@ void Client::pullMessages(ClientId& client_id, vector<User>& savedUsers) {
 
 			//Get username by message sender client id
 			string username;
-			for (auto x : savedUsers) {
+			for (const auto& x : savedUsers) {
 				int res = strncmp(msg_clientId, x.client_id, S_CLIENT_ID);
 				if (res == 0) {
 					username = x.username;

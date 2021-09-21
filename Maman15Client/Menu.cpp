@@ -53,6 +53,11 @@ bool Menu::isRegistered()
 	return registered;
 }
 
+const std::vector<MenuUser> Menu::getUsers()
+{
+	return users;
+}
+
 void Menu::show() const {
 	if ((string)(me.username) != "") {
 		LOG("Hello " << me.username << "!");
