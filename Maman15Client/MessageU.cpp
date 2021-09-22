@@ -46,12 +46,9 @@ MessageU::MessageU(string ip, string port) : ip(ip), port(port) {
 void MessageU::start()
 {
 	while (true) {
-		Username myUsername;
-		me.getUsername(myUsername);
-		string myUsername_str(myUsername);
-
-		menu.show(myUsername_str);
-		ClientChoices choice = menu.get_choice(myUsername_str);
+		string myUsername = me.getUsernameStr();
+		menu.show(myUsername);
+		ClientChoices choice = menu.get_choice(myUsername);
 
 		//Create client for the request. (one per choice)
 		Client client(ip, port, CLIENT_VERSION);

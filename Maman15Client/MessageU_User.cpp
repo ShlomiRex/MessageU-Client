@@ -37,7 +37,7 @@ void MessageU_User::getUsername(Username& result) const
 	memcpy(result, username, S_USERNAME);
 }
 
-const string MessageU_User::getUsernameStr()
+const string MessageU_User::getUsernameStr() const
 {
 	Username username;
 	getUsername(username);

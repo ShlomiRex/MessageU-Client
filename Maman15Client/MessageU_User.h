@@ -17,7 +17,7 @@ public:
 	//Getters
 	void getClientId(MessageUProtocol::ClientId& result) const;
 	void getUsername(MessageUProtocol::Username& result) const;
-	const std::string getUsernameStr();
+	const std::string getUsernameStr() const;
 	void getPublicKey(MessageUProtocol::PublicKey& result) const;
 	void getPrivateKey(MessageUProtocol::PrivateKey& result) const;
 	void getSymmetricKey(MessageUProtocol::SymmetricKey& result) const;

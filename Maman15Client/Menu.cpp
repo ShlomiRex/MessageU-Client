@@ -39,11 +39,7 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers) const
 			user.getClientId(clientId);
 			string clientId_str = hexify_str(clientId, S_CLIENT_ID);
 
-			Username username;
-			user.getUsername(username);
-			string username_str(username);
-
-			LOG("\t" << (i + 1) << ") Username: " << username_str);
+			LOG("\t" << (i + 1) << ") Username: " << user.getUsernameStr());
 			LOG("\tClient ID: " << clientId_str);
 
 			//Check public key is not zeroes array
@@ -157,11 +153,8 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 				for (size_t i = 0; i < availableUsers->size(); i++) {
 					if (user_number == (i + 1)) {
 						const auto& x = availableUsers->at(i);
-						Username username;
-						x.getUsername(username);
-						string username_str(username);
 
-						LOG("You chose user number: " << user_number << " with username: " << username_str);
+						LOG("You chose user number: " << user_number << " with username: " << x.getUsernameStr());
 						return x;
 					}
 				}
@@ -180,12 +173,10 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 		try {
 			DEBUG("Trying to parse input as username");
 			for (const auto& x : *availableUsers) {
-				Username username;
-				x.getUsername(username);
-				string username_str(username);
+				string username = x.getUsernameStr();
 
-				if (username_str == line) {
-					LOG("You chose username: " << username_str);
+				if (username == line) {
+					LOG("You chose username: " << username);
 					return x;
 				}
 			}
