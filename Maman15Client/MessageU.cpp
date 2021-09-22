@@ -34,6 +34,11 @@ MessageU::MessageU(string ip, string port) : ip(ip), port(port) {
 			me.setUsername(username);
 		}
 
+		const char* privateKeyFromFile = FileManager::getSavedPrivateKey();
+		string privKeyStr(privateKeyFromFile);
+
+		string privKeyDecoded = Base64Wrapper::decode(privKeyStr);
+
 		me.setClientId(myClientId);
 
 		me.setRegistered();
@@ -130,19 +135,19 @@ void MessageU::start()
 
 void MessageU::registerChoice(Client& client)
 {
-	string username = me.getUsernameStr();
-	if (username.size() == 0) {
-		menu.readUsername();
+	string current_username = me.getUsernameStr();
+	if (current_username.size() == 0) {
+		string new_username = menu.readUsername();
 
 		client.connect();
 		ClientId myClientId;
 		me.getClientId(myClientId);
-		client.registerUser(username, myClientId);
+		client.registerUser(new_username, myClientId);
 
 		me.setRegistered();
 	}
 	else {
-		LOG("'" << username << "', your already registered!");
+		LOG("'" << current_username << "', your already registered!");
 	}
 }
 
@@ -261,9 +266,11 @@ void MessageU::pullMessagesChoice(Client& client)
 				//Save the symmetric key
 
 				string symmkey_cipher(msg.msgContent);
-				PublicKey myPubKey;
-				me.getPublicKey(myPubKey);
-				string plainSymmKey = AsymmetricCrypto::decrypt(symmkey_cipher, myPubKey);
+
+				PrivateKey myPrivKey;
+				me.getPrivateKey(myPrivKey);
+
+				string plainSymmKey = AsymmetricCrypto::decrypt(symmkey_cipher, myPrivKey);
 
 				LOG("Symmetric key (" << msg.msgSize << " bytes):");
 				hexify((const unsigned char*)msg.msgContent, msg.msgSize);

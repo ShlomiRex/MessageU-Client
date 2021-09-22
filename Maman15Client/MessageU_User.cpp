@@ -57,7 +57,6 @@ void MessageU_User::setUsername(const Username& _username)
 
 void MessageU_User::setPublicKey(const MessageUProtocol::PublicKey& other)
 {
-	//TODO: Problem: MEM COPY DOESNT WORK HERE!
 	memcpy(pubkey, other, S_PUBLIC_KEY);
 }
 
