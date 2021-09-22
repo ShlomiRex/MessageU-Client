@@ -9,13 +9,34 @@
 //TODO: Else, when send file is not implimented, client version is 1!
 #define CLIENT_VERSION 1
 
+//Small class extension of MessageU_User
+//MyUser can be registered or not
+class MyUser : public MessageU_User {
+private:
+	bool registered = false;
+
+public:
+	bool isRegistered() {
+		return registered;
+	}
+	void setRegistered() {
+		registered = true;
+	}
+};
+
 class MessageU
 {
 private:
 	std::string ip, port;
 
-	MessageU_User me;
+	MyUser me;
 	Menu menu;
+
+	//Other clients
+	std::vector<MessageU_User> users;
+
+	//Find user by given client id. Returns index of the vector. If user not found, return -1.
+	int findUser(const MessageUProtocol::ClientId& clientId) const;
 
 public:
 	MessageU(std::string ip, std::string port);
@@ -32,5 +53,13 @@ public:
 	void sendFileChoice(Client& client);
 	void pullMessagesChoice(Client& client);
 	void sendSymmKeyChoice(Client& client);
+
+	//Other
+	void aquirePublicKey(Client& client, MessageU_User& destUser);
 };
 
+struct UserNotFound : public std::exception {
+	const char* what() const throw() {
+		return "Couldn't find user from users list.";
+	}
+};

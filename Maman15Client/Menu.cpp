@@ -3,47 +3,6 @@
 using namespace std;
 using namespace MessageUProtocol;
 
-Menu::Menu() : registered(false) {
-
-}
-
-void Menu::setUserPublicKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::PublicKey& pubkey)
-{
-	for (auto& x : users) {
-		if (buffer_compare(x.client_id, userClientId, S_CLIENT_ID)) {
-			memcpy(x.publicKey, pubkey, S_PUBLIC_KEY);
-			return;
-		}
-	}
-	throw MenuUserNotFound();
-}
-
-void Menu::setUserSymmKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::SymmetricKey& symmkey)
-{
-	for (auto& x : users) {
-		if (buffer_compare(x.client_id, userClientId, S_CLIENT_ID)) {
-			memcpy(x.symmKey, symmkey, S_SYMMETRIC_KEY);
-			return;
-		}
-	}
-	throw MenuUserNotFound();
-}
-
-void Menu::setRegistered()
-{
-	registered = true;
-}
-
-bool Menu::isRegistered()
-{
-	return registered;
-}
-
-const std::vector<MenuUser> Menu::getUsers()
-{
-	return users;
-}
-
 void Menu::show(const string& myUsername) const {
 	if ((string)(myUsername) != "") {
 		LOG("Hello " << myUsername << "!");
@@ -69,19 +28,29 @@ void Menu::show(const string& myUsername) const {
 	LOG("0) Exit client");
 }
 
-void Menu::showUsers() const
+void Menu::showUsers(const vector<MessageU_User>* availableUsers) const
 {
-	if (users.size() != 0) {
+	if (availableUsers->size() != 0) {
 		LOG("Available users:");
-		for (size_t i = 0; i < users.size(); i++) {
-			const auto& user = users.at(i);
-			string clientId_str = hexify_str(user.client_id, S_CLIENT_ID);
+		for (size_t i = 0; i < availableUsers->size(); i++) {
+			const auto& user = availableUsers->at(i);
+			
+			ClientId clientId;
+			user.getClientId(clientId);
+			string clientId_str = hexify_str(clientId, S_CLIENT_ID);
 
-			LOG("\t" << (i + 1) << ") Username: " << user.username);
+			Username username;
+			user.getUsername(username);
+			string username_str(username);
+
+			LOG("\t" << (i + 1) << ") Username: " << username_str);
 			LOG("\tClient ID: " << clientId_str);
 
 			//Check public key is not zeroes array
-			if (is_zero_filled(user.publicKey, S_PUBLIC_KEY)) {
+			PublicKey pubkey;
+			user.getPublicKey(pubkey);
+
+			if (is_zero_filled(pubkey, S_PUBLIC_KEY)) {
 				LOG("\tPublic key: Not aquired");
 			}
 			else {
@@ -89,7 +58,10 @@ void Menu::showUsers() const
 			}
 
 			//Check symm key is not zeroes array
-			if (is_zero_filled(user.symmKey, S_SYMMETRIC_KEY)) {
+			SymmetricKey symmkey;
+			user.getSymmetricKey(symmkey);
+
+			if (is_zero_filled(symmkey, S_SYMMETRIC_KEY)) {
 				LOG("\tSymmetric key: Not aquired");
 			}
 			else {
@@ -160,10 +132,10 @@ string Menu::readUsername()
 	}
 }
 
-const MenuUser Menu::chooseUser() const
+const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers) const
 {
 	//Check saved clients vector
-	if (users.size() == 0) {
+	if (availableUsers->size() == 0) {
 		throw EmptyClientsList();
 	}
 
@@ -182,11 +154,14 @@ const MenuUser Menu::chooseUser() const
 			//int user_number = stoi(line); //Never use it to check if number. If line is hex: '8f 87 48...' it converts first character only to 8 instead of throwing error.
 			if (is_number(line)) {
 				int user_number = stoi(line); //Now we can use it, because we are sure it is a number.
-				for (size_t i = 0; i < users.size(); i++) {
+				for (size_t i = 0; i < availableUsers->size(); i++) {
 					if (user_number == (i + 1)) {
-						const auto& x = users.at(i);
-						LOG("You chose user number: " << user_number << " with username: " << x.username);
-						auto found = users.at(i).client_id;
+						const auto& x = availableUsers->at(i);
+						Username username;
+						x.getUsername(username);
+						string username_str(username);
+
+						LOG("You chose user number: " << user_number << " with username: " << username_str);
 						return x;
 					}
 				}
@@ -204,10 +179,13 @@ const MenuUser Menu::chooseUser() const
 		//Try username
 		try {
 			DEBUG("Trying to parse input as username");
-			for (const auto& x : users) {
-				string username = x.username;
-				if (username == line) {
-					LOG("You chose username: " << x.username);
+			for (const auto& x : *availableUsers) {
+				Username username;
+				x.getUsername(username);
+				string username_str(username);
+
+				if (username_str == line) {
+					LOG("You chose username: " << username_str);
 					return x;
 				}
 			}
@@ -230,9 +208,12 @@ const MenuUser Menu::chooseUser() const
 				try {
 					string unhex = boost::algorithm::unhex(line);
 
-					for (const auto& x : users) {
+					for (const auto& x : *availableUsers) {
 						//TODO: Compare client id in possible choices to input
-						string client_id_str = x.client_id;
+						ClientId clientId;
+						x.getClientId(clientId);
+
+						string client_id_str(clientId);
 						if (strncmp(client_id_str.c_str(), unhex.c_str(), S_CLIENT_ID) == 0) {
 							return x;
 						}

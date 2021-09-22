@@ -1,24 +1,22 @@
 #include "MessageU.h"
 
+#define DEBUG_PREFIX "[MessageU] "
+
 using namespace std;
 using namespace MessageUProtocol;
 
-void updateUsers(Menu& menuobj, vector<MenuUser>* serverResponse) {
-	//Clear current users from memory
-	menuobj.users.clear();
-	//Save new users
-	menuobj.users.assign(serverResponse->begin(), serverResponse->end());
-}
+int MessageU::findUser(const MessageUProtocol::ClientId& clientId) const
+{
+	for (size_t i = 0; i < users.size(); i++) {
+		ClientId _clientId;
+		users.at(i).getClientId(_clientId);
 
-void aquirePublicKey(MessageU_User& me, Menu& menu, Client& client, MenuUser& destUser) {
-	ClientId myClientId;
-	me.getClientId(myClientId);
-	//Update 'destUser' with new public key
-	client.connect();
-	client.getPublicKey(myClientId, destUser.client_id, destUser.publicKey);
-
-	//Get that public key and update menu users
-	menu.setUserPublicKey(destUser.client_id, destUser.publicKey);
+		bool same = buffer_compare(_clientId, clientId, S_CLIENT_ID);
+		if (same) {
+			return i;
+		}
+	}
+	return -1;
 }
 
 MessageU::MessageU(string ip, string port) : ip(ip), port(port) {
@@ -30,10 +28,15 @@ MessageU::MessageU(string ip, string port) : ip(ip), port(port) {
 		FileManager::getSavedClientId(myClientId);
 		myUsername = FileManager::getSavedUsername(); //Username helps identify (for debugging and also its nice) who I am, what username I currently use.
 
-		me.setUsername(myUsername);
+		if (myUsername.size() > 0 && myUsername.size() <= S_USERNAME) {
+			Username username;
+			memcpy(username, myUsername.c_str(), S_USERNAME);
+			me.setUsername(username);
+		}
+
 		me.setClientId(myClientId);
 
-		menu.setRegistered();
+		me.setRegistered();
 	}
 	catch (InfoFileNotExistException) {
 		//do nothing, not registered
@@ -43,8 +46,12 @@ MessageU::MessageU(string ip, string port) : ip(ip), port(port) {
 void MessageU::start()
 {
 	while (true) {
-		menu.show(me.getUsername());
-		ClientChoices choice = menu.get_choice(me.getUsername());
+		Username myUsername;
+		me.getUsername(myUsername);
+		string myUsername_str(myUsername);
+
+		menu.show(myUsername_str);
+		ClientChoices choice = menu.get_choice(myUsername_str);
 
 		//Create client for the request. (one per choice)
 		Client client(ip, port, CLIENT_VERSION);
@@ -107,9 +114,9 @@ void MessageU::start()
 			auto destUser = e.getDestUser();
 
 			stringstream ss;
-			ss << "Would you like me to automatically get the public key of '" << destUser.username << "'?";
+			ss << "Would you like me to automatically get the public key of '" << destUser.getUsernameStr() << "'?";
 			if (menu.yesNoChoice(ss.str(), true)) {
-				aquirePublicKey(me, menu, client, destUser);
+				aquirePublicKey(client, destUser);
 			}
 			else {
 				LOG("Returning to main menu.");
@@ -126,47 +133,59 @@ void MessageU::start()
 
 void MessageU::registerChoice(Client& client)
 {
-	if (me.getUsername().size() == 0) {
+	string username = me.getUsernameStr();
+	if (username.size() == 0) {
 		menu.readUsername();
 
 		client.connect();
 		ClientId myClientId;
 		me.getClientId(myClientId);
-		client.registerUser(me.getUsername(), myClientId);
+		client.registerUser(username, myClientId);
 
-		menu.setRegistered();
+		me.setRegistered();
 	}
 	else {
-		LOG("'" << me.getUsername() << "', your already registered!");
+		LOG("'" << username << "', your already registered!");
 	}
 }
 
 void MessageU::getClientsChoice(Client& client)
 {
-	//Temporary store users from the server response
-	vector<MenuUser> menuUsers;
+	if (users.size() > 0) {
+		if (menu.yesNoChoice("Warning: getting clients again will result in wipe of saved client's keys, usernames and ids! Are you sure?", false)) {
+			goto get_users;
+		}
+		else {
+			LOG("Returning to main menu.");
+			return;
+		}
+	}
 
-	//Get users from server
-	vector<MessageUProtocol::User> users;
+get_users:
+	//Temporary store usersGot from the server response
+	vector<MessageU_User> newUsers;
+
+	//Get usersGot from server
+	vector<MessageUProtocol::User> usersGot;
 
 	client.connect();
 	ClientId myClientId;
 	me.getClientId(myClientId);
-	client.getClients(myClientId, &users);
+	client.getClients(myClientId, &usersGot);
 
-	for (const auto& x : users) {
+	for (const auto& x : usersGot) {
 		//It's ok, vector does the copy operator, so it won't be freed after loop,
-		MenuUser menuUser;
-		memcpy(menuUser.client_id, x.client_id, S_CLIENT_ID);
-		memset(menuUser.publicKey, 0, S_PUBLIC_KEY); //Here, we still don't know the public ip of each client. But it's ok, we cna deal with it later.
-		memcpy(menuUser.username, x.username, S_USERNAME);
+		MessageU_User user;
+		user.setClientId(x.client_id);
+		user.setUsername(x.username);
 
-		menuUsers.push_back(menuUser);
+		newUsers.push_back(user);
 	}
 
-	if (menuUsers.size() > 0) {
+	if (newUsers.size() > 0) {
 		//Update our saved users in memory
-		updateUsers(menu, &menuUsers);
+		users.clear();
+		users.assign(newUsers.begin(), newUsers.end());
 
 		LOG("Users saved in memory for later use.");
 	}
@@ -174,9 +193,9 @@ void MessageU::getClientsChoice(Client& client)
 
 void MessageU::getPublicKeyChoice(Client& client)
 {
-	menu.showUsers();
-	MenuUser destUser = menu.chooseUser();
-	aquirePublicKey(me, menu, client, destUser);
+	menu.showUsers(&users);
+	MessageU_User destUser = menu.chooseUser(&users);
+	aquirePublicKey(client, destUser);
 }
 
 void MessageU::sendMessageChoice(Client& client)
@@ -187,14 +206,17 @@ void MessageU::sendMessageChoice(Client& client)
 
 void MessageU::sendReqSymmKeyChoice(Client& client)
 {
-	menu.showUsers();
+	menu.showUsers(&users);
 
-	MenuUser destUser = menu.chooseUser();
+	MessageU_User destUser = menu.chooseUser(&users);
 
 	client.connect();
 	ClientId myClientId;
 	me.getClientId(myClientId);
-	client.getSymKey(myClientId, destUser.client_id);
+
+	ClientId destClientId;
+	destUser.getClientId(destClientId);
+	client.getSymKey(myClientId, destClientId);
 }
 
 void MessageU::sendFileChoice(Client& client)
@@ -205,31 +227,36 @@ void MessageU::sendFileChoice(Client& client)
 
 void MessageU::pullMessagesChoice(Client& client)
 {
-	if (menu.isRegistered() == false) {
+	if (me.isRegistered() == false) {
 		throw NotRegistered();
 	}
-	//Get uses saved in memory
-	auto users = menu.getUsers();
 
 	if (users.size() == 0) {
 		throw EmptyClientsList();
 	}
 
-	//Create vector of users (without public key) to call pull messages
+	//Create vector of usersGot (without public key) to call pull messages
 	vector<MessageUProtocol::User> castUsers;
 	for (const auto& x : users) {
+		ClientId xClientId;
+		Username xUsername;
+		x.getClientId(xClientId);
+		x.getUsername(xUsername);
+
 		//Read google, push_back copies User, so it won't be freed after loop.
 		MessageUProtocol::User tmpUser;
-		memcpy(tmpUser.client_id, x.client_id, S_CLIENT_ID);
-		memcpy(tmpUser.username, x.username, S_USERNAME);
+		memcpy(tmpUser.client_id, xClientId, S_CLIENT_ID);
+		memcpy(tmpUser.username, xUsername, S_USERNAME);
 		castUsers.push_back(tmpUser);
 	}
 
-	//Let client do the rest
+	//Let client do the rest - get response vector
 	client.connect();
+
 	ClientId myClientId;
 	me.getClientId(myClientId);
 	const vector<MessageResponse>* messages = client.pullMessages(myClientId, castUsers);
+
 	if (messages != nullptr) {
 		for (const auto& msg : *messages) {
 			MessageTypes _type = (MessageTypes)msg.msgType;
@@ -244,9 +271,17 @@ void MessageU::pullMessagesChoice(Client& client)
 				LOG("Symmetric key (" << msg.msgSize << " bytes):");
 				hexify((const unsigned char*)msg.msgContent, msg.msgSize);
 
+				//Cast message content to symm key
 				SymmetricKey symmkey;
 				memcpy(symmkey, msg.msgContent, S_SYMMETRIC_KEY); //TODO: I know msg.msgContent is greater than S_SYMMETRIC_KEY, we need to send correct cipher, not "Super Secret"
-				menu.setUserSymmKey(msg.sender.client_id, symmkey);
+
+				//Find user with sender's client id
+				int index = findUser(msg.sender.client_id);
+				if (index < 0) {
+					throw UserNotFound();
+				}
+				//Set symmetric key of the sender
+				users.at(index).setSymmKey(symmkey);
 			}
 		}
 		//Free vector pointer
@@ -257,14 +292,17 @@ void MessageU::pullMessagesChoice(Client& client)
 
 void MessageU::sendSymmKeyChoice(Client& client)
 {
-	if (menu.isRegistered() == false) {
+	if (me.isRegistered() == false) {
 		throw NotRegistered();
 	}
 
-	menu.showUsers();
-	MenuUser destUser = menu.chooseUser();
+	menu.showUsers(&users);
+	MessageU_User destUser = menu.chooseUser(&users);
 
-	if (is_zero_filled(destUser.publicKey, S_PUBLIC_KEY)) {
+	PublicKey destPubKey;
+	destUser.getPublicKey(destPubKey);
+
+	if (is_zero_filled(destPubKey, S_PUBLIC_KEY)) {
 		throw EmptyPublicKey(destUser);
 	}
 
@@ -283,5 +321,28 @@ void MessageU::sendSymmKeyChoice(Client& client)
 	//We encrypt with destUser's public key
 	ClientId myClientId;
 	me.getClientId(myClientId);
-	client.sendSymKey(myClientId, symkey, destUser.client_id, destUser.publicKey);
+	ClientId destClientId;
+	destUser.getClientId(destClientId);
+	client.sendSymKey(myClientId, symkey, destClientId, destPubKey);
 }
+
+void MessageU::aquirePublicKey(Client& client, MessageU_User& destUser) {
+	ClientId myClientId;
+	me.getClientId(myClientId);
+
+	//Update 'destUser' with new public key
+	client.connect();
+	ClientId destClientId;
+	destUser.getClientId(destClientId);
+	PublicKey destPubKey;
+	destUser.getPublicKey(destPubKey);
+	client.getPublicKey(myClientId, destClientId, destPubKey);
+
+	//Get that public key and update menu usersGot
+	int index = findUser(destClientId);
+	if (index < 0) {
+		throw UserNotFound();
+	}
+	users.at(index).setPublicKey(destPubKey);
+}
+

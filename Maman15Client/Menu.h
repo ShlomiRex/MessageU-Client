@@ -7,6 +7,7 @@
 #include <string>
 #include <boost/algorithm/hex.hpp> //to read hex from input
 #include "Utils.h"
+#include "MessageU_User.h"
 
 enum class ClientChoices {
 	registerUser = 10,
@@ -20,47 +21,16 @@ enum class ClientChoices {
 	exitProgram = 0
 };
 
-typedef struct MenuUser {
-	MessageUProtocol::ClientId client_id;
-	MessageUProtocol::Username username;
-	MessageUProtocol::PublicKey publicKey;
-	MessageUProtocol::SymmetricKey symmKey;
-
-	MenuUser() {
-		memset(client_id, 0, S_CLIENT_ID);
-		memset(username, 0, S_USERNAME);
-		memset(publicKey, 0, S_PUBLIC_KEY);
-		memset(symmKey, 0, S_SYMMETRIC_KEY);
-	}
-} MenuUser;
-
 class Menu
 {
-private:
-	//We need write access, because of GetClients request. So we give friendship to 'updateUsers' function.
-	std::vector<MenuUser> users;
-	bool registered;
-
 public:
-	Menu();
-
-	//Gets
-	bool isRegistered();
-	const std::vector<MenuUser> getUsers();
-
-	//Sets
-	friend void updateUsers(Menu& menuobj, std::vector<MenuUser>* serverResponse);
-	void setUserPublicKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::PublicKey& pubkey);
-	void setUserSymmKey(const MessageUProtocol::ClientId& userClientId, const MessageUProtocol::SymmetricKey& symmkey);
-	void setRegistered();
-
 	//Prints
 	void show(const std::string& myUsername) const;
-	void showUsers() const;
+	void showUsers(const std::vector<MessageU_User>* availableUsers) const;
 
 	//Read input
 	ClientChoices get_choice(const std::string& myUsername) const;
-	const MenuUser chooseUser() const;
+	const MessageU_User chooseUser(const std::vector<MessageU_User>* availableUsers) const;
 	bool yesNoChoice(std::string prompt, bool yesIsDefaultChoice);
 	std::string readUsername();
 };
@@ -85,12 +55,12 @@ struct NotRegistered : public std::exception {
 
 struct EmptyPublicKey : public std::exception {
 private:
-	MenuUser destUser;
+	MessageU_User destUser;
 	std::string mystr;
 public:
-	EmptyPublicKey(MenuUser& destUser) : destUser(destUser) {
+	EmptyPublicKey(MessageU_User& destUser) : destUser(destUser) {
 		std::stringstream ss;
-		ss << "You need to get " << destUser.username << "'s public key.";
+		ss << "You need to get " << destUser.getUsernameStr() << "'s public key.";
 
 		mystr = ss.str();
 	}
@@ -98,7 +68,7 @@ public:
 		return mystr.c_str();
 	}
 
-	MenuUser getDestUser() {
+	MessageU_User getDestUser() {
 		return destUser;
 	}
 };

@@ -32,17 +32,40 @@ void MessageU_User::getSymmetricKey(MessageUProtocol::SymmetricKey& result) cons
 	memcpy(result, symmkey, S_SYMMETRIC_KEY);
 }
 
-string MessageU_User::getUsername() const
+void MessageU_User::getUsername(Username& result) const
 {
-	return username;
+	memcpy(result, username, S_USERNAME);
 }
 
-void MessageU_User::setClientId(MessageUProtocol::ClientId& clientId)
+const string MessageU_User::getUsernameStr()
+{
+	Username username;
+	getUsername(username);
+	string username_str(username);
+	return username_str;
+}
+
+void MessageU_User::setClientId(const MessageUProtocol::ClientId& clientId)
 {
 	memcpy(client_id, clientId, S_CLIENT_ID);
 }
 
-void MessageU_User::setUsername(string& _username)
+void MessageU_User::setUsername(const Username& _username)
 {
-	memcpy(username, _username.c_str(), S_USERNAME);
+	memcpy(username, _username, S_USERNAME);
+}
+
+void MessageU_User::setPublicKey(const MessageUProtocol::PublicKey& other)
+{
+	memcpy(client_id, other, S_CLIENT_ID);
+}
+
+void MessageU_User::setPrivateKey(const MessageUProtocol::PrivateKey& other)
+{
+	memcpy(pubkey, other, S_PUBLIC_KEY); //Here, we still don't know the public ip of each client. But it's ok, we cna deal with it later.
+}
+
+void MessageU_User::setSymmKey(const MessageUProtocol::SymmetricKey& other)
+{
+	memcpy(symmkey, other, S_SYMMETRIC_KEY);
 }
