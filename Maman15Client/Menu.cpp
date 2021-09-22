@@ -50,7 +50,10 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers) const
 				LOG("\tPublic key: Not aquired");
 			}
 			else {
-				LOG("\tPublic key: Aquired");
+				string pubkey_str(pubkey);
+				pubkey_str = pubkey_str.substr(0, SHOW_PUBKEY_MAX_CHARACTERS);
+				pubkey_str = hexify_str(pubkey_str.c_str(), pubkey_str.size());
+				LOG("\tPublic key: " << pubkey_str << "... (" << S_PUBLIC_KEY << " bytes)");
 			}
 
 			//Check symm key is not zeroes array

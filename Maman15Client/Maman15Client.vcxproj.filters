@@ -37,6 +37,12 @@
     <Filter Include="Source Files\Utils">
       <UniqueIdentifier>{9a560be1-547c-4c7a-9c74-f5abea443b01}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\MessageU">
+      <UniqueIdentifier>{7300f26d-bf21-41bb-a1b5-d1be154e1174}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\MessageU">
+      <UniqueIdentifier>{4034bcd3-d354-4743-a559-f40127b252c7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -85,10 +91,10 @@
       <Filter>Source Files\Menu</Filter>
     </ClCompile>
     <ClCompile Include="MessageU_User.cpp">
-      <Filter>Source Files\Client</Filter>
+      <Filter>Source Files\MessageU</Filter>
     </ClCompile>
     <ClCompile Include="MessageU.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\MessageU</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -140,11 +146,11 @@
     <ClInclude Include="Menu.h">
       <Filter>Header Files\Menu</Filter>
     </ClInclude>
-    <ClInclude Include="MessageU_User.h">
-      <Filter>Header Files\Client</Filter>
-    </ClInclude>
     <ClInclude Include="MessageU.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\MessageU</Filter>
+    </ClInclude>
+    <ClInclude Include="MessageU_User.h">
+      <Filter>Header Files\MessageU</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

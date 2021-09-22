@@ -57,12 +57,13 @@ void MessageU_User::setUsername(const Username& _username)
 
 void MessageU_User::setPublicKey(const MessageUProtocol::PublicKey& other)
 {
-	memcpy(client_id, other, S_CLIENT_ID);
+	//TODO: Problem: MEM COPY DOESNT WORK HERE!
+	memcpy(pubkey, other, S_PUBLIC_KEY);
 }
 
 void MessageU_User::setPrivateKey(const MessageUProtocol::PrivateKey& other)
 {
-	memcpy(pubkey, other, S_PUBLIC_KEY); //Here, we still don't know the public ip of each client. But it's ok, we cna deal with it later.
+	memcpy(privkey, other, S_PRIVATE_KEY); //Here, we still don't know the public ip of each client. But it's ok, we cna deal with it later.
 }
 
 void MessageU_User::setSymmKey(const MessageUProtocol::SymmetricKey& other)

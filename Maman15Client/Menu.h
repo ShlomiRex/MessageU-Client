@@ -9,6 +9,8 @@
 #include "Utils.h"
 #include "MessageU_User.h"
 
+#define SHOW_PUBKEY_MAX_CHARACTERS		24U
+
 enum class ClientChoices {
 	registerUser = 10,
 	reqClientList = 20,

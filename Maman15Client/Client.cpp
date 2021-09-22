@@ -498,8 +498,8 @@ void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId&
 	//TODO: Encrypt message with pubkey
 	string secret(mySymmKey);
 
-	string cipher3 = AsymmetricCrypto::encrypt(secret, dest_client_pubKey);
-	msgHeader.contentSize = cipher3.size();
+	string cipher = AsymmetricCrypto::encrypt(secret, dest_client_pubKey);
+	msgHeader.contentSize = cipher.size();
 
 	// 
 	// 3. create an RSA encryptor
@@ -514,12 +514,12 @@ void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId&
 	*/
 
 
-	
+	/*
 	string cipher2 = AsymmetricCrypto::encrypt("Hello!", dest_client_pubKey);
 	string cipher = AsymmetricCrypto::encrypt(mySymmKey, dest_client_pubKey);
 	LOG("Encrypted symmetric key: " << cipher.size() << " bytes:");
 	hexify((const unsigned char*)cipher.c_str(), cipher.size());
-
+	*/
 	
 	PayloadSize payloadSize = sizeof(msgHeader) + msgHeader.contentSize;
 	request.pack_payloadSize(payloadSize);
@@ -527,8 +527,8 @@ void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId&
 	//Pack raw payload
 	request.pack_message_header(msgHeader);
 
-	auto payload = cipher3.c_str();
-	size_t s_payload = cipher3.size();
+	auto payload = cipher.c_str();
+	size_t s_payload = cipher.size();
 	request.pack_payload(payload, s_payload);
 
 	sendRequest();

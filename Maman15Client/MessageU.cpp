@@ -331,8 +331,7 @@ void MessageU::aquirePublicKey(Client& client, MessageU_User& destUser) {
 	client.connect();
 	ClientId destClientId;
 	destUser.getClientId(destClientId);
-	PublicKey destPubKey;
-	destUser.getPublicKey(destPubKey);
+	PublicKey destPubKey = { 0 };
 	client.getPublicKey(myClientId, destClientId, destPubKey);
 
 	//Get that public key and update menu usersGot
