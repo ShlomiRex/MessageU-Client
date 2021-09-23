@@ -40,7 +40,7 @@ void Request::pack_payloadSize(PayloadSize size) {
 	writer.write4bytes(size);
 }
 
-void Request::pack_payload(const char* data, size_t size)
+void Request::pack_payload(const unsigned char* data, size_t size)
 {
 	DEBUG("Packing payload (" << size << " bytes) :");
 #ifdef DEBUGGING
@@ -52,7 +52,7 @@ void Request::pack_payload(const char* data, size_t size)
 void Request::pack_username(string username) {
 	DEBUG("Packing name (" << S_USERNAME << " bytes, with null terminator): " << username);
 	Username buff = { 0 };
-	username.copy(buff, S_USERNAME);
+	username.copy((char*)buff, S_USERNAME);
 	writer.write(buff, S_USERNAME);
 }
 
@@ -96,6 +96,6 @@ size_t Request::getPacketSize() {
 	return writer.getOffset();
 }
 
-const char* Request::getPacket() {
+const unsigned char* Request::getPacket() {
 	return writer.getBuffer();
 }

@@ -2,7 +2,7 @@
 
 using namespace std;
 
-ResponseHeader::ResponseHeader(const char* buffer, size_t buffSize) {
+ResponseHeader::ResponseHeader(const unsigned char* buffer, size_t buffSize) {
 	if (buffSize < S_RESPONSE_HEADER) {
 		throw exception("Can't reconstruct response header: buffer size is too low.");
 	}

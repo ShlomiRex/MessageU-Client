@@ -62,7 +62,7 @@ private:
 public:
 	EmptyPublicKey(MessageU_User& destUser) : destUser(destUser) {
 		std::stringstream ss;
-		ss << "You need to get " << destUser.getUsernameStr() << "'s public key.";
+		ss << "You need to get " << destUser.getUsername() << "'s public key.";
 
 		mystr = ss.str();
 	}

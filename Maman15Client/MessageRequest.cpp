@@ -9,10 +9,10 @@ MessageRequest::MessageRequest(MessageHeader header) : header(header), messageCo
 
 }
 
-const char* MessageRequest::pack(ContentSize* result_size) const {
+const unsigned char* MessageRequest::pack(ContentSize* result_size) const {
 	*result_size = S_MESSAGE_HEADER + header.contentSize;
 
-	char* result_payload = new char[*result_size];
+	unsigned char* result_payload = new unsigned char[*result_size];
 	BufferWriter writer(result_payload, *result_size);
 
 	//Write header

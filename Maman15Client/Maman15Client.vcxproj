@@ -151,7 +151,6 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
   <ItemGroup>
     <ClCompile Include="AESWrapper.cpp" />
     <ClCompile Include="AsymmetricCrypto.cpp" />
-    <ClCompile Include="Base64Helper.cpp" />
     <ClCompile Include="Base64Wrapper.cpp" />
     <ClCompile Include="BufferUtils.cpp" />
     <ClCompile Include="FileManager.cpp" />
@@ -170,7 +169,6 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
   <ItemGroup>
     <ClInclude Include="AESWrapper.h" />
     <ClInclude Include="AsymmetricCrypto.h" />
-    <ClInclude Include="Base64Helper.h" />
     <ClInclude Include="Base64Wrapper.h" />
     <ClInclude Include="BufferUtils.h" />
     <ClInclude Include="Debug.h" />
@@ -186,9 +184,6 @@ copy /Y "$(SolutionDir)Debug\$(SolutionName).exe" "$(SolutionDir)Debug\Client_Sh
     <ClInclude Include="RSAWrapper.h" />
     <ClInclude Include="SymmetricCrypto.h" />
     <ClInclude Include="Utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="Text.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

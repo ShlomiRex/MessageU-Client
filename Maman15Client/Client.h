@@ -15,8 +15,6 @@
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include "Base64Wrapper.h"
-//#include "RSAWrapper.h"
-//#include "AESWrapper.h"
 #include <iomanip>
 #include "BufferUtils.h"
 #include "ProtocolDefenitions.h"
@@ -29,6 +27,7 @@
 #include "Debug.h"
 #include "AsymmetricCrypto.h"
 #include "SymmetricCrypto.h"
+#include <boost/beast/core/detail/base64.hpp>
 #pragma comment(lib, "Ws2_32.lib")
 
 //using namespace std; //bad practice
@@ -54,7 +53,7 @@ private:
 	ResponseHeader recvResponseHeader(MessageUProtocol::ResponseCodes requiredCode);
 	
 	//General function to receive required amount of bytes in socket.
-	const char* recvNextPayload(uint32_t amountRecvBytes);
+	const unsigned char* recvNextPayload(uint32_t amountRecvBytes);
 
 	//Spesific recv functions
 	MessageUProtocol::User recvNextUserInList();

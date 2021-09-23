@@ -11,14 +11,15 @@ namespace MessageUProtocol {
 #define S_RESPONSE_HEADER	7U				//Size of response header
 
 #define S_PUBLIC_KEY		160U			//Public key field size
-#define S_PRIVATE_KEY		160U			//key pair with public key for asymmetric encryption, decryption
+#define S_PRIVATE_KEY		160U	//TODO: PRIVATE KEY SIZE IS NOT 160. IDK WHY YOU SAY IT'S 160 BUTS ITS 633 OR 632.		//key pair with public key for asymmetric encryption, decryption
 #define S_SYMMETRIC_KEY		16U				//symmetric key length (in bytes) - AES-CBC encryption, decryption
 #define S_ASYMMETRIC_KEY	128U			//asymmetric key length (in bytes) - RSA encryption
 
 #define FILE_SERVER			"server.info"	//For starting the server
 #define FILE_REGISTER		"me.info"		//For saving registeration information
 
-
+//Implicit defenitions
+#define S_FILE_REGISTER		2048U			//Maximum size of me.info
 
 
 //Op codes
@@ -48,23 +49,23 @@ namespace MessageUProtocol {
 
 	//Implicit defenitions - not explicitly stated in the protocol defenition
 	//====================================================================================
-#define S_FILE_REGISTER		2048U			//Maximum private key size, for buffering
+//#define S_FILE_REGISTER		2048U			//Maximum private key size, for buffering
 #define S_FILE_SERVER		2048U			//Maximum file size
 
 //Types
 //====================================================================================
 //Common header fields
-	typedef char ClientId[S_CLIENT_ID];
+	typedef unsigned char ClientId[S_CLIENT_ID];
 	typedef uint8_t Version;
 	typedef uint16_t Code;
 	typedef uint32_t PayloadSize;
-	typedef char Username[S_USERNAME];
-	typedef char PublicKey[S_PUBLIC_KEY];
-	typedef char PrivateKey[S_PRIVATE_KEY];
+	typedef unsigned char Username[S_USERNAME];
+	typedef unsigned char PublicKey[S_PUBLIC_KEY];
+	typedef unsigned char PrivateKey[S_PRIVATE_KEY];
 
 	//Message (Request + Response) header fields
 	typedef uint8_t MessageType;
-	typedef char SymmetricKey[S_SYMMETRIC_KEY];
+	typedef unsigned char SymmetricKey[S_SYMMETRIC_KEY];
 
 	//Message Request header fields
 	typedef uint32_t ContentSize;
@@ -72,7 +73,7 @@ namespace MessageUProtocol {
 	//Message Response header fields
 	typedef uint32_t MessageId;
 	typedef uint32_t MessageSize;
-	typedef const char* MessageContent;
+	typedef const unsigned char* MessageContent;
 
 	typedef struct {
 		ClientId client_id;

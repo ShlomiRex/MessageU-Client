@@ -39,32 +39,32 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers) const
 			user.getClientId(clientId);
 			string clientId_str = hexify_str(clientId, S_CLIENT_ID);
 
-			LOG("\t" << (i + 1) << ") Username: " << user.getUsernameStr());
-			LOG("\tClient ID: " << clientId_str);
+			LOG("\t" << (i + 1) << ") Username: " << user.getUsername());
+			LOG("\tClient ID: \t\t" << clientId_str);
 
 			//Check public key is not zeroes array
-			PublicKey pubkey;
+			PublicKey pubkey = { 0 };
 			user.getPublicKey(pubkey);
 
 			if (is_zero_filled(pubkey, S_PUBLIC_KEY)) {
-				LOG("\tPublic key: Not aquired");
+				LOG("\tPublic key: \t\tNot aquired");
 			}
 			else {
-				string pubkey_str(pubkey);
+				string pubkey_str((char*)pubkey);
 				pubkey_str = pubkey_str.substr(0, SHOW_PUBKEY_MAX_CHARACTERS);
-				pubkey_str = hexify_str(pubkey_str.c_str(), pubkey_str.size());
-				LOG("\tPublic key: " << pubkey_str << "... (" << S_PUBLIC_KEY << " bytes)");
+				pubkey_str = hexify_str((unsigned char*)pubkey_str.c_str(), pubkey_str.size());
+				LOG("\tPublic key: \t\t" << pubkey_str << "... (" << S_PUBLIC_KEY << " bytes)");
 			}
 
 			//Check symm key is not zeroes array
-			SymmetricKey symmkey;
+			SymmetricKey symmkey = { 0 };
 			user.getSymmetricKey(symmkey);
-
 			if (is_zero_filled(symmkey, S_SYMMETRIC_KEY)) {
-				LOG("\tSymmetric key: Not aquired");
+				LOG("\tSymmetric key: \t\tNot aquired");
 			}
 			else {
-				LOG("\tSymmetric key: Aquired");
+				string symmkey_hex = hexify_str(symmkey, S_SYMMETRIC_KEY);
+				LOG("\tSymmetric key: \t\t" << symmkey_hex);
 			}
 			LOG("");
 		}
@@ -157,7 +157,7 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 					if (user_number == (i + 1)) {
 						const auto& x = availableUsers->at(i);
 
-						LOG("You chose user number: " << user_number << " with username: " << x.getUsernameStr());
+						LOG("You chose user number: " << user_number << " with username: " << x.getUsername());
 						return x;
 					}
 				}
@@ -176,7 +176,7 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 		try {
 			DEBUG("Trying to parse input as username");
 			for (const auto& x : *availableUsers) {
-				string username = x.getUsernameStr();
+				string username = x.getUsername();
 
 				if (username == line) {
 					LOG("You chose username: " << username);
@@ -207,7 +207,7 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 						ClientId clientId;
 						x.getClientId(clientId);
 
-						string client_id_str(clientId);
+						string client_id_str((char*)clientId);
 						if (strncmp(client_id_str.c_str(), unhex.c_str(), S_CLIENT_ID) == 0) {
 							return x;
 						}

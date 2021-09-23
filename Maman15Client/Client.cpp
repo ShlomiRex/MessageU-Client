@@ -46,22 +46,33 @@ void Client::registerUser(string username, ClientId& result_clientId) {
 	//Payload: Public key
 
 	//Generate key pairs
-	string generated_pubkey, generated_privkey;
-	AsymmetricCrypto::generateKeys(generated_pubkey, generated_privkey);
-	
-	//Convert to PublicKey type
+	RSAPrivateWrapper rsaPrivWrapper;
+	string privkey = rsaPrivWrapper.getPrivateKey();
+	string pubkey = rsaPrivWrapper.getPublicKey();
+
+	LOG("Generated public key (" << pubkey.size() << " bytes):");
+	hexify((const unsigned char*)pubkey.c_str(), pubkey.size());
+
+	LOG("Generated private key (" << privkey.size() << " bytes):");
+	hexify((const unsigned char*)privkey.c_str(), privkey.size());
+
+	//Test other clients can encrypt with my public key
+	{
+		RSAPublicWrapper rsaPub(pubkey);
+		string plain = "Hello World!";
+		string cipher = rsaPub.encrypt(plain);
+
+		//Test I can read encrypted messages
+		{
+			RSAPrivateWrapper rsaPriv(privkey);
+			string decrypted = rsaPriv.decrypt(cipher);
+			assert(decrypted.compare(plain) == 0);
+		}
+	}
+
+	//Pack public key
 	PublicKey my_publicKey = { 0 };
-	memcpy(my_publicKey, generated_pubkey.c_str(), S_PUBLIC_KEY);
-
-	//TODO: ERROR in send symm key. Encrypt. Something wrong with encryption with public key.
-	string cipher = AsymmetricCrypto::encrypt("Hello!", my_publicKey);
-	string decrypted = AsymmetricCrypto::decrypt(cipher, generated_privkey);
-
-	//TODO: PrivateKey is not 160 bytes! But 633???
-	//PrivateKey my_privateKey = { 0 };
-	//memcpy(my_privateKey, generated_privkey.c_str(), generated_privkey.size());
-
-	//Pack public key as payload
+	memcpy(my_publicKey, pubkey.c_str(), pubkey.size());
 	request.pack_pub_key(my_publicKey);
 
 	//Send request
@@ -95,12 +106,10 @@ void Client::registerUser(string username, ClientId& result_clientId) {
 		file.write("\n", 1);
 
 		//In the third line, write private key
-		string base64_private_key = Base64Wrapper::encode(generated_privkey);
-		base64_private_key.erase(remove(base64_private_key.begin(), base64_private_key.end(), '\n'));
-		file.write(base64_private_key.c_str(), base64_private_key.size());
+		string base64 = Base64Wrapper::encode(privkey);
+		file.write(base64.c_str(), base64.size());
 
-		string base64_decoded_private_key = Base64Wrapper::decode(base64_private_key); //TODO: REMOVE
-
+		//Finish
 		file.close();
 		DEBUG("Done writing");
 
@@ -113,7 +122,7 @@ void Client::registerUser(string username, ClientId& result_clientId) {
 
 size_t Client::sendRequest() {
 	size_t packetSize = request.getPacketSize();
-	const char* buff = request.getPacket();
+	auto buff = request.getPacket();
 
 	DEBUG("Sending request (" << packetSize << " bytes): ");
 #ifdef DEBUGGING
@@ -126,7 +135,7 @@ size_t Client::sendRequest() {
 
 ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 	DEBUG("Receving response header...");
-	const char* payload = recvNextPayload(S_RESPONSE_HEADER);
+	auto payload = recvNextPayload(S_RESPONSE_HEADER);
 	DEBUG("Received response header");
 
 	ResponseHeader header(payload, S_RESPONSE_HEADER);
@@ -229,12 +238,12 @@ void Client::getPublicKey(const ClientId& myClientId, const ClientId& dest_clien
 	
 }
 
-const char* Client::recvNextPayload(uint32_t amountRecvBytes) {
+const unsigned char* Client::recvNextPayload(uint32_t amountRecvBytes) {
 	if (amountRecvBytes == 0)
 		return nullptr;
 
 	DEBUG("Receving payload...");
-	char* buffer = new char[amountRecvBytes];
+	unsigned char* buffer = new unsigned char[amountRecvBytes];
 	memset(buffer, 0, amountRecvBytes);
 
 	size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, amountRecvBytes));
@@ -260,25 +269,25 @@ User Client::recvNextUserInList() {
 }
 
 void Client::recvClientId(ClientId& result) {
-	const char* payload = recvNextPayload(S_CLIENT_ID);
+	auto payload = recvNextPayload(S_CLIENT_ID);
 	memcpy(result, payload, S_CLIENT_ID);
 	delete[] payload;
 }
 
 void Client::recvUsername(Username& result) {
-	const char* payload = recvNextPayload(S_USERNAME);
+	auto payload = recvNextPayload(S_USERNAME);
 	memcpy(result, payload, S_USERNAME);
 	delete[] payload;
 }
 
 void Client::recvPublicKey(PublicKey& result) {
-	const char* payload = recvNextPayload(S_PUBLIC_KEY);
+	auto payload = recvNextPayload(S_PUBLIC_KEY);
 	memcpy(result, payload, S_PUBLIC_KEY);
 	delete[] payload;
 }
 
 MessageId Client::recvMessageId() {
-	const char* payload = recvNextPayload(sizeof(MessageId));
+	auto payload = recvNextPayload(sizeof(MessageId));
 	BufferReader reader(payload, sizeof(MessageId));
 	MessageId result = reader.read4bytes();
 	delete[] payload;
@@ -286,7 +295,7 @@ MessageId Client::recvMessageId() {
 }
 
 MessageType Client::recvMessageType() {
-	const char* payload = recvNextPayload(sizeof(MessageType));
+	auto payload = recvNextPayload(sizeof(MessageType));
 	BufferReader reader(payload, sizeof(MessageType));
 	MessageType msgType = reader.read1byte();
 	delete[] payload;
@@ -294,7 +303,7 @@ MessageType Client::recvMessageType() {
 }
 
 MessageSize Client::recvMessageSize() {
-	const char* payload = recvNextPayload(sizeof(MessageSize));
+	auto payload = recvNextPayload(sizeof(MessageSize));
 	BufferReader reader(payload, sizeof(MessageSize));
 	MessageSize msgSize = reader.read4bytes();
 	delete[] payload;
@@ -322,7 +331,7 @@ void Client::getSymKey(ClientId& my_clientId, ClientId& dest_clientId) {
 
 	//Now convert the message to payload for the base request
 	ContentSize payloadSize = 0;
-	const char* payload = msg.pack(&payloadSize);
+	auto payload = msg.pack(&payloadSize);
 
 	//Set base request payload size
 	request.pack_payloadSize(payloadSize);
@@ -431,7 +440,7 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				cout << "Symmetric key received" << endl;
 				
 				//Get symmetric key (message content) from server
-				const char* msg_msgContent = recvNextPayload(msgResponse.msgSize);
+				const unsigned char* msg_msgContent = recvNextPayload(msgResponse.msgSize);
 				pSize -= msgResponse.msgSize;
 
 				msgResponse.msgContent = msg_msgContent; //this is pointer
@@ -442,7 +451,7 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				while (msg_bytes_left > 0) {
 					//If we can read more than 1 packet
 					if (msg_bytes_left > S_PACKET_SIZE) {
-						const char* content = recvNextPayload(S_PACKET_SIZE);
+						auto content = recvNextPayload(S_PACKET_SIZE);
 						pSize -= S_PACKET_SIZE;
 
 						//TODO: Decrypt
@@ -450,7 +459,7 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 						delete[] content;
 					}
 					else {
-						const char* content = recvNextPayload(msg_bytes_left);
+						auto content = recvNextPayload(msg_bytes_left);
 						pSize -= msg_bytes_left;
 
 						//TODO: Decrypt
@@ -496,32 +505,20 @@ void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId&
 	msgHeader.messageType = (MessageType)MessageTypes::sendSymmetricKey; //Cast enum to its value
 	memcpy(msgHeader.dest_clientId, dest_clientId, S_CLIENT_ID);
 
-	//TODO: Encrypt message with pubkey
-	string secret(mySymmKey);
+	//string tmp_pubkey(dest_client_pubKey); //THIS WHAT CAUSED A LOT OF ISSUES AND I SPENT TONS OF TIME DEBUGGING WHY I GET DER DECODE ERROR.
+	//APPERANTLY, STRING STOPS AT TERMINATOR. BUT IN OUR CASE, WE WANT TERMINATORS INSIDE THE STRING.
+	string tmp_pubkey;
+	for (size_t i = 0; i < S_PUBLIC_KEY; i++) {
+		const char c = dest_client_pubKey[i];
+		tmp_pubkey.push_back(c);
+	}
 
-	string cipher = AsymmetricCrypto::encrypt(secret, dest_client_pubKey);
+	//Encrypt symm key
+	RSAPublicWrapper rsapub(tmp_pubkey);
+	string cipher = rsapub.encrypt((char*)mySymmKey);
 	msgHeader.contentSize = cipher.size();
 
-	// 
-	// 3. create an RSA encryptor
-	//RSAPublicWrapper rsapub(dest_client_pubKey);
-	//string cipher = rsapub.encrypt((const char*)mySymmKey, S_SYMMETRIC_KEY);	// you can encrypt a const char* or an std::string
-	//cout << "cipher:" << endl;
-	//hexify((unsigned char*)cipher.c_str(), cipher.length());	// print binary data nicely
-
-	/*
-	string pubkey, privkey;
-	AsymmetricCrypto::getKeys2(pubkey, privkey);
-	*/
-
-
-	/*
-	string cipher2 = AsymmetricCrypto::encrypt("Hello!", dest_client_pubKey);
-	string cipher = AsymmetricCrypto::encrypt(mySymmKey, dest_client_pubKey);
-	LOG("Encrypted symmetric key: " << cipher.size() << " bytes:");
-	hexify((const unsigned char*)cipher.c_str(), cipher.size());
-	*/
-	
+	//Pack payload size
 	PayloadSize payloadSize = sizeof(msgHeader) + msgHeader.contentSize;
 	request.pack_payloadSize(payloadSize);
 
@@ -530,7 +527,7 @@ void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId&
 
 	auto payload = cipher.c_str();
 	size_t s_payload = cipher.size();
-	request.pack_payload(payload, s_payload);
+	request.pack_payload((const unsigned char*)payload, s_payload);
 
 	sendRequest();
 

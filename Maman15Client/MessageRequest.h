@@ -26,6 +26,6 @@ public:
 	MessageRequest(MessageHeader header);
 
 	//Return bytes, as you would for sending this message object. For request payload.
-	const char* pack(MessageUProtocol::ContentSize* result_size) const;
+	const unsigned char* pack(MessageUProtocol::ContentSize* result_size) const;
 };
 

@@ -4,6 +4,7 @@
 #include "MessageU_User.h"
 #include "Menu.h"
 #include "Client.h"
+#include "AESWrapper.h"
 
 //TODO: When implimented send file, client version is 2!
 //TODO: Else, when send file is not implimented, client version is 1!
@@ -37,7 +38,7 @@ private:
 
 	//Find user by given client id. Returns index of the vector. If user not found, return -1.
 	int findUser(const MessageUProtocol::ClientId& clientId) const;
-
+	void readInfoFile();
 public:
 	MessageU(std::string ip, std::string port);
 

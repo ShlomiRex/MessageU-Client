@@ -2,13 +2,13 @@
 
 using namespace std;
 
-BufferWriter::BufferWriter(char* buffer, size_t bufferSize) :
+BufferWriter::BufferWriter(unsigned char* buffer, size_t bufferSize) :
     buffer(buffer), offset(0), bufferSize(bufferSize), isInternalBuffer(false) {
     memset(buffer, 0, bufferSize);
 }
 
 BufferWriter::BufferWriter(size_t bufferSize) : bufferSize(bufferSize), offset(0), isInternalBuffer(true) {
-    this->buffer = new char[bufferSize];
+    this->buffer = new unsigned char[bufferSize];
     memset(buffer, 0, bufferSize);
 }
 
@@ -18,7 +18,7 @@ BufferWriter::~BufferWriter() {
     }
 }
 
-const char* BufferWriter::getBuffer() {
+const unsigned char* BufferWriter::getBuffer() {
     return buffer;
 }
 
@@ -96,7 +96,7 @@ void BufferWriter::writeVal(uint8_t val, size_t size) {
 // =================================================================================
 
 
-BufferReader::BufferReader(const char* buffer, size_t bufferSize) :
+BufferReader::BufferReader(const unsigned char* buffer, size_t bufferSize) :
     buffer(buffer), offset(0), bufferSize(bufferSize) {
 }
 

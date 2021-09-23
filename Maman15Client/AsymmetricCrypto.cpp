@@ -39,7 +39,7 @@ string AsymmetricCrypto::encrypt(const string& text, const MessageUProtocol::Pub
 	RSA::PublicKey decoded_pubkey;
 
 	//Cast PublicKey to string
-	string publickey_str(publickey, S_PUBLIC_KEY);
+	string publickey_str((char*)publickey, S_PUBLIC_KEY);
 	//Read from the casted string and decode pub key
 	StringSource ss(publickey_str, true);
 	decoded_pubkey.BERDecode(ss);

@@ -13,7 +13,7 @@ private:
 	MessageUProtocol::Code code;					//2 bytes
 	MessageUProtocol::PayloadSize payloadSize;		//4 bytes
 public:
-	ResponseHeader(const char* buffer, size_t buffSize);
+	ResponseHeader(const unsigned char* buffer, size_t buffSize);
 
 	MessageUProtocol::Version getVersion();
 	MessageUProtocol::Code getCode();

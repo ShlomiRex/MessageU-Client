@@ -16,7 +16,8 @@ class FileManager
 public:
 	static void getSavedClientId(MessageUProtocol::ClientId buffer);
 	static std::string getSavedUsername();
-	static const char* getSavedPrivateKey();
+	static std::string getSavedPrivateKey();
+	static void readServer(std::string& result_ip, std::string& result_port);
 };
 
 struct InfoFileNotExistException : public std::exception {

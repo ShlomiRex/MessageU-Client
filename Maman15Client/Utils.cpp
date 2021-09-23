@@ -1,6 +1,7 @@
 #include "Utils.h"
 
 using namespace std;
+using namespace MessageUProtocol;
 
 void hexify(const unsigned char* buffer, unsigned int length)
 {
@@ -15,7 +16,7 @@ void hexify(const unsigned char* buffer, unsigned int length)
     cout.flags(f);
 }
 
-string hexify_str(const char* buffer, size_t length) {
+string hexify_str(const unsigned char* buffer, size_t length) {
 	stringstream ss;
 	ss << hex;
 
@@ -32,7 +33,7 @@ bool is_number(const std::string& s)
 	return !s.empty() && it == s.end();
 }
 
-bool is_zero_filled(const char* arr, size_t s_arr)
+bool is_zero_filled(const unsigned char* arr, size_t s_arr)
 {
     for (size_t i = 0; i < s_arr; i++) {
         //If not zero, return false, arr is not zero filled
@@ -43,7 +44,7 @@ bool is_zero_filled(const char* arr, size_t s_arr)
     return true;
 }
 
-bool buffer_compare(const char* buff1, const char* buff2, size_t s_buffers)
+bool buffer_compare(const unsigned char* buff1, const unsigned char* buff2, size_t s_buffers)
 {
     for (size_t i = 0; i < s_buffers; i++) {
         char c1 = buff1[i];
@@ -53,4 +54,14 @@ bool buffer_compare(const char* buff1, const char* buff2, size_t s_buffers)
         }
     }
     return true;
+}
+
+void str_to_pubKey(const std::string& str, PublicKey& result)
+{
+    memcpy(result, str.c_str(), S_PUBLIC_KEY);
+}
+
+void str_to_symmKey(const std::string& str, MessageUProtocol::SymmetricKey& result)
+{
+    memcpy(result, str.c_str(), S_SYMMETRIC_KEY);
 }

@@ -7,9 +7,6 @@
 #include "Debug.h"
 #include "MessageRequest.h"
 
-//using namespace std;
-//using namespace MessageUProtocol;
-
 class Request {
 private:
 	MessageUProtocol::Version clientVersion;
@@ -25,7 +22,7 @@ public:
 	void pack_payloadSize(MessageUProtocol::PayloadSize size);
 
 	//Generic function to pack and append to payload.
-	void pack_payload(const char* data, size_t size);
+	void pack_payload(const unsigned char* data, size_t size);
 
 	//Spesific request packing
 	void pack_username(std::string username);				//username size can be any size. This function will right pad with zeros.
@@ -37,5 +34,5 @@ public:
 	//To pack message content, just pack payload.
 
 	size_t getPacketSize();
-	const char* getPacket();
+	const unsigned char* getPacket();
 };

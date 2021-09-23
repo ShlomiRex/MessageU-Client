@@ -8,7 +8,7 @@
 class BufferWriter
 {
 private:
-	char* buffer;
+	unsigned char* buffer;
 	size_t bufferSize;
 
 	size_t offset;
@@ -18,7 +18,7 @@ private:
 	bool isInternalBuffer;
 public:
 	BufferWriter(size_t bufferSize); //Create new buffer, and remember to delete at the deconstructor!
-	BufferWriter(char* buffer, size_t bufferSize);
+	BufferWriter(unsigned char* buffer, size_t bufferSize);
 	~BufferWriter();
 
 	void write1byte(uint8_t);
@@ -28,13 +28,13 @@ public:
 	void write(const void* data, size_t size);
 	void writeVal(uint8_t val, size_t size);
 	size_t getOffset();
-	const char* getBuffer();
+	const unsigned char* getBuffer();
 };
 
 class BufferReader
 {
 private:
-	const char* buffer;
+	const unsigned char* buffer;
 	size_t bufferSize;
 
 	size_t offset;
@@ -42,7 +42,7 @@ private:
 	bool check_overflow(size_t bytesGoingToRead);
 
 public:
-	BufferReader(const char* buffer, size_t bufferSize);
+	BufferReader(const unsigned char* buffer, size_t bufferSize);
 
 	//To skip some bytes, you can add to offset.
 	void addOffset(size_t amount);

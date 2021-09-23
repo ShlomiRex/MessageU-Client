@@ -19,27 +19,31 @@ int MessageU::findUser(const MessageUProtocol::ClientId& clientId) const
 	return -1;
 }
 
-MessageU::MessageU(string ip, string port) : ip(ip), port(port) {
+void MessageU::readInfoFile() {
 	try {
 		//Read me.info and set my username, clientid
 		string myUsername = "";
 		ClientId myClientId = { 0 };
 
+		//Read client id
 		FileManager::getSavedClientId(myClientId);
-		myUsername = FileManager::getSavedUsername(); //Username helps identify (for debugging and also its nice) who I am, what username I currently use.
+		me.setClientId(myClientId);
 
+		//Read username
+		myUsername = FileManager::getSavedUsername(); //Username helps identify (for debugging and also its nice) who I am, what username I currently use.
 		if (myUsername.size() > 0 && myUsername.size() <= S_USERNAME) {
-			Username username;
-			memcpy(username, myUsername.c_str(), S_USERNAME);
-			me.setUsername(username);
+			me.setUsername(myUsername);
 		}
 
-		const char* privateKeyFromFile = FileManager::getSavedPrivateKey();
-		string privKeyStr(privateKeyFromFile);
 
-		string privKeyDecoded = Base64Wrapper::decode(privKeyStr);
+		//Read private key
+		string privateKeyFromFile = FileManager::getSavedPrivateKey();
 
-		me.setClientId(myClientId);
+		string privkey_str = Base64Wrapper::decode(privateKeyFromFile);
+
+		PrivateKey privKey = { 0 };
+		str_to_pubKey(privkey_str, privKey);
+		me.setPrivateKey(privKey);
 
 		me.setRegistered();
 	}
@@ -48,10 +52,14 @@ MessageU::MessageU(string ip, string port) : ip(ip), port(port) {
 	}
 }
 
+MessageU::MessageU(string ip, string port) : ip(ip), port(port) {
+	readInfoFile();
+}
+
 void MessageU::start()
 {
 	while (true) {
-		string myUsername = me.getUsernameStr();
+		string myUsername = me.getUsername();
 		menu.show(myUsername);
 		ClientChoices choice = menu.get_choice(myUsername);
 
@@ -116,7 +124,7 @@ void MessageU::start()
 			auto destUser = e.getDestUser();
 
 			stringstream ss;
-			ss << "Would you like me to automatically get the public key of '" << destUser.getUsernameStr() << "'?";
+			ss << "Would you like me to automatically get the public key of '" << destUser.getUsername() << "'?";
 			if (menu.yesNoChoice(ss.str(), true)) {
 				aquirePublicKey(client, destUser);
 			}
@@ -135,7 +143,7 @@ void MessageU::start()
 
 void MessageU::registerChoice(Client& client)
 {
-	string current_username = me.getUsernameStr();
+	string current_username = me.getUsername();
 	if (current_username.size() == 0) {
 		string new_username = menu.readUsername();
 
@@ -144,7 +152,7 @@ void MessageU::registerChoice(Client& client)
 		me.getClientId(myClientId);
 		client.registerUser(new_username, myClientId);
 
-		me.setRegistered();
+		readInfoFile();
 	}
 	else {
 		LOG("'" << current_username << "', your already registered!");
@@ -179,7 +187,7 @@ get_users:
 		//It's ok, vector does the copy operator, so it won't be freed after loop,
 		MessageU_User user;
 		user.setClientId(x.client_id);
-		user.setUsername(x.username);
+		user.setUsername((char*)x.username);
 
 		newUsers.push_back(user);
 	}
@@ -241,14 +249,12 @@ void MessageU::pullMessagesChoice(Client& client)
 	vector<MessageUProtocol::User> castUsers;
 	for (const auto& x : users) {
 		ClientId xClientId;
-		Username xUsername;
 		x.getClientId(xClientId);
-		x.getUsername(xUsername);
 
 		//Read google, push_back copies User, so it won't be freed after loop.
 		MessageUProtocol::User tmpUser;
 		memcpy(tmpUser.client_id, xClientId, S_CLIENT_ID);
-		memcpy(tmpUser.username, xUsername, S_USERNAME);
+		memcpy(tmpUser.username, x.getUsername().c_str(), S_USERNAME);
 		castUsers.push_back(tmpUser);
 	}
 
@@ -264,20 +270,25 @@ void MessageU::pullMessagesChoice(Client& client)
 			MessageTypes _type = (MessageTypes)msg.msgType;
 			if (_type == MessageTypes::sendSymmetricKey) {
 				//Save the symmetric key
+				//NOTE: WE HAVE THE SAME PROBLEM JUST AS SEND SYMM KEY! WE NEED THE STRING TO CONTAIN NULL TERMINATORS.
+				//string symmkey_cipher(msg.msgContent);
+				string symmkey_cipher;
+				for (size_t i = 0; i < msg.msgSize; i++) {
+					const char c = msg.msgContent[i];
+					symmkey_cipher.push_back(c);
+				}
 
-				string symmkey_cipher(msg.msgContent);
+				//Read and decode private key
+				string saved_priv_key = FileManager::getSavedPrivateKey();
+				string privkey = Base64Wrapper::decode(saved_priv_key);
 
-				PrivateKey myPrivKey;
-				me.getPrivateKey(myPrivKey);
-
-				string plainSymmKey = AsymmetricCrypto::decrypt(symmkey_cipher, myPrivKey);
-
-				LOG("Symmetric key (" << msg.msgSize << " bytes):");
-				hexify((const unsigned char*)msg.msgContent, msg.msgSize);
-
+				//Decrypt message
+				RSAPrivateWrapper rsaPrivWrapper(privkey);
+				string plain_symmKey = rsaPrivWrapper.decrypt(symmkey_cipher);
+				
 				//Cast message content to symm key
-				SymmetricKey symmkey;
-				memcpy(symmkey, msg.msgContent, S_SYMMETRIC_KEY); //TODO: I know msg.msgContent is greater than S_SYMMETRIC_KEY, we need to send correct cipher, not "Super Secret"
+				//SymmetricKey symmkey;
+				//memcpy(symmkey, plain.c_str(), S_SYMMETRIC_KEY); //TODO: I know msg.msgContent is greater than S_SYMMETRIC_KEY, we need to send correct cipher, not "Super Secret"
 
 				//Find user with sender's client id
 				int index = findUser(msg.sender.client_id);
@@ -285,7 +296,10 @@ void MessageU::pullMessagesChoice(Client& client)
 					throw UserNotFound();
 				}
 				//Set symmetric key of the sender
-				users.at(index).setSymmKey(symmkey);
+				//users.at(index).setSymmKey(symmkey);
+				SymmetricKey symmKey;
+				str_to_symmKey(plain_symmKey, symmKey);
+				users.at(index).setSymmKey(symmKey);
 			}
 		}
 		//Free vector pointer
@@ -303,7 +317,7 @@ void MessageU::sendSymmKeyChoice(Client& client)
 	menu.showUsers(&users);
 	MessageU_User destUser = menu.chooseUser(&users);
 
-	PublicKey destPubKey;
+	PublicKey destPubKey = { 0 };
 	destUser.getPublicKey(destPubKey);
 
 	if (is_zero_filled(destPubKey, S_PUBLIC_KEY)) {
@@ -312,22 +326,28 @@ void MessageU::sendSymmKeyChoice(Client& client)
 
 	//Generate new symmetric key
 	SymmetricKey symkey = { 0 };
-	//SymmetricCrypto::generateKey(symkey);
+	unsigned char buff[S_SYMMETRIC_KEY];
+	AESWrapper aes(AESWrapper::GenerateKey(buff, S_SYMMETRIC_KEY), S_SYMMETRIC_KEY);
+	memcpy(symkey, buff, S_SYMMETRIC_KEY);
+	LOG("Generated symm key (" << S_SYMMETRIC_KEY << " bytes):");
+	hexify((const unsigned char*)symkey, S_SYMMETRIC_KEY);
 
-	//Create 
-	//SecureChannel sec;
-	//memcpy(sec.user.client_id, dest_clientId, S_CLIENT_ID);
+	//Save symm key so we can use it later. Associate symm key with destination client
+	ClientId destUserClientId;
+	destUser.getClientId(destUserClientId);
+	int index = findUser(destUserClientId);
+	if (index < 0) {
+		throw UserNotFound();
+	}
+	users.at(index).setSymmKey(destUserClientId);
 
-	//TODO: Send a secret message first, test it works to decrypt it, and if it works, generate symm key and send it instead
-	strncpy_s(symkey, "Super Secret", 13);
-
+	//Send request
 	client.connect();
-	//We encrypt with destUser's public key
-	ClientId myClientId;
+	ClientId myClientId = { 0 };
 	me.getClientId(myClientId);
-	ClientId destClientId;
+	ClientId destClientId = { 0 };
 	destUser.getClientId(destClientId);
-	client.sendSymKey(myClientId, symkey, destClientId, destPubKey);
+	client.sendSymKey(myClientId, symkey, destClientId, destPubKey); 	//We encrypt with destUser's public key
 }
 
 void MessageU::aquirePublicKey(Client& client, MessageU_User& destUser) {
