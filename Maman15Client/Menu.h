@@ -36,6 +36,7 @@ public:
 	const MessageU_User chooseUser(const std::vector<MessageU_User>* availableUsers) const;
 	bool yesNoChoice(std::string prompt, bool yesIsDefaultChoice);
 	std::string readUsername();
+	std::string readText();
 };
 
 struct EmptyClientsList : public std::exception {

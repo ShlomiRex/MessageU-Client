@@ -210,8 +210,26 @@ void MessageU::getPublicKeyChoice(Client& client)
 
 void MessageU::sendMessageChoice(Client& client)
 {
-	//TODO: Impliment
-	LOG("Not yet implimented");
+	menu.showUsers(&users);
+
+	//Get destination
+	auto destUser = menu.chooseUser(&users);
+	ClientId destClientId;
+	destUser.getClientId(destClientId);
+
+	//Get payload
+	string text = menu.readText();
+
+	//Get symm key
+	SymmetricKey symmkey;
+	destUser.getSymmetricKey(symmkey);
+
+	ClientId myClientId;
+	me.getClientId(myClientId);
+
+	//Go
+	client.connect();
+	client.sendText(myClientId, destClientId, symmkey, text);
 }
 
 void MessageU::sendReqSymmKeyChoice(Client& client)
@@ -245,25 +263,12 @@ void MessageU::pullMessagesChoice(Client& client)
 		throw EmptyClientsList();
 	}
 
-	//Create vector of usersGot (without public key) to call pull messages
-	vector<MessageUProtocol::User> castUsers;
-	for (const auto& x : users) {
-		ClientId xClientId;
-		x.getClientId(xClientId);
-
-		//Read google, push_back copies User, so it won't be freed after loop.
-		MessageUProtocol::User tmpUser;
-		memcpy(tmpUser.client_id, xClientId, S_CLIENT_ID);
-		memcpy(tmpUser.username, x.getUsername().c_str(), S_USERNAME);
-		castUsers.push_back(tmpUser);
-	}
-
 	//Let client do the rest - get response vector
 	client.connect();
 
 	ClientId myClientId;
 	me.getClientId(myClientId);
-	const vector<MessageResponse>* messages = client.pullMessages(myClientId, castUsers);
+	const vector<MessageResponse>* messages = client.pullMessages(myClientId, users);
 
 	if (messages != nullptr) {
 		for (const auto& msg : *messages) {

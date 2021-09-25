@@ -353,7 +353,7 @@ void Client::getSymKey(ClientId& my_clientId, ClientId& dest_clientId) {
 	LOG("And message ID: " << messageId);
 }
 
-const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, const vector<User>& savedUsers) {
+const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, const vector<MessageU_User>& users) {
 	LOG("Pulling waiting messages...");
 
 	//Request Header
@@ -412,14 +412,21 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 			}
 
 
-			//Get sender username by sender client id
-			for (const auto& x : savedUsers) {
-				bool same = buffer_compare(msgResponse.sender.client_id, x.client_id, S_CLIENT_ID);
+			//Get sender
+			MessageU_User sender;
+			for (const auto& x : users) {
+				ClientId xClientId;
+				x.getClientId(xClientId);
+
+				bool same = buffer_compare(msgResponse.sender.client_id, xClientId, S_CLIENT_ID);
 				if (same) {
-					memcpy(msgResponse.sender.username, x.username, S_USERNAME);
+					sender = x;
 					break;
 				}
 			}
+			//Get sender username
+			memcpy(msgResponse.sender.username, sender.getUsername().c_str(), S_USERNAME);
+
 			if (is_zero_filled(msgResponse.sender.username, S_USERNAME)) {
 				LOG("ERROR: Couldn't map username to client id: ");
 				hexify((const unsigned char*)msgResponse.sender.client_id, S_CLIENT_ID);
@@ -448,25 +455,45 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 			else if (_msg_msgType_enum == MessageTypes::sendMessage) {
 				//TODO: Decrypt
 				size_t msg_bytes_left = msgResponse.msgSize;
+				size_t msg_bytes_read = 0;
 				while (msg_bytes_left > 0) {
+					MessageContent msg_content = nullptr;
+
 					//If we can read more than 1 packet
 					if (msg_bytes_left > S_PACKET_SIZE) {
 						auto content = recvNextPayload(S_PACKET_SIZE);
-						pSize -= S_PACKET_SIZE;
+						msg_bytes_read = S_PACKET_SIZE; //Save amount of bytes read
+						pSize -= S_PACKET_SIZE; //Decrease total payload size left
+						msg_bytes_left -= S_PACKET_SIZE;  //Decrease message content payload size left
 
-						//TODO: Decrypt
-
-						delete[] content;
+						msg_content = content;
 					}
 					else {
 						auto content = recvNextPayload(msg_bytes_left);
-						pSize -= msg_bytes_left;
+						msg_bytes_read = msg_bytes_left; //Save amount of bytes read
+						pSize -= msg_bytes_left; //Decrease total payload size left
+						msg_bytes_left -= msg_bytes_left; //Decrease message content payload size left (in this case, we left with zero, and exit loop)
 
-						//TODO: Decrypt
-
-						delete[] content;
+						msg_content = content;
 					}
+
+					//Get sender symm key
+					SymmetricKey senderSymmKey;
+					sender.getSymmetricKey(senderSymmKey);
+
+					//Decrypt cipher with sender's symm key
+					AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
+					string plain = aeswrapper.decrypt((const char*)msg_content, msg_bytes_read);
+
+					//Print chiper's plain text block, without newline
+					cout << plain;
+
+					//Free payload
+					delete[] msg_content;
 				}
+				//Got all the message
+				//End text message content with newline
+				cout << endl;
 			}
 			else {
 				LOG("ERROR: Message type: " << (int)msgResponse.msgType << " is not recognized.");
@@ -479,7 +506,7 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 			//Add to pulled messages
 			messages_pulled->push_back(msgResponse);
 		}
-		LOG("Finished receiving messages. Count: " << messages_pulled->size());
+		LOG("Finished receiving messages. Messages read: " << messages_pulled->size());
 		return messages_pulled;
 	}
 	catch (exception& e) {
@@ -501,30 +528,33 @@ void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId&
 	request.pack_version();
 	request.pack_code(RequestCodes::sendMessage);
 
+	//Prepare request message header
 	MessageHeader msgHeader;
 	msgHeader.messageType = (MessageType)MessageTypes::sendSymmetricKey; //Cast enum to its value
 	memcpy(msgHeader.dest_clientId, dest_clientId, S_CLIENT_ID);
 
 	//string tmp_pubkey(dest_client_pubKey); //THIS WHAT CAUSED A LOT OF ISSUES AND I SPENT TONS OF TIME DEBUGGING WHY I GET DER DECODE ERROR.
 	//APPERANTLY, STRING STOPS AT TERMINATOR. BUT IN OUR CASE, WE WANT TERMINATORS INSIDE THE STRING.
-	string tmp_pubkey = buffer_to_str(dest_client_pubKey, S_PUBLIC_KEY);
+	string pubkey_str = buffer_to_str(dest_client_pubKey, S_PUBLIC_KEY);
 
 	//Encrypt symm key
-	RSAPublicWrapper rsapub(tmp_pubkey);
+	RSAPublicWrapper rsapub(pubkey_str);
 	string cipher = rsapub.encrypt((char*)mySymmKey);
+
+	//Set message content size
 	msgHeader.contentSize = cipher.size();
 
 	//Pack payload size
 	PayloadSize payloadSize = sizeof(msgHeader) + msgHeader.contentSize;
 	request.pack_payloadSize(payloadSize);
 
-	//Pack raw payload
+	//Pack message header
 	request.pack_message_header(msgHeader);
 
-	auto payload = cipher.c_str();
-	size_t s_payload = cipher.size();
-	request.pack_payload((const unsigned char*)payload, s_payload);
+	//Pack message content
+	request.pack_payload((const unsigned char*)cipher.c_str(), cipher.size());
 
+	//Go
 	sendRequest();
 
 
@@ -542,4 +572,54 @@ void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId&
 	LOG("Response message id: " << messageId);
 
 	LOG("Symmetric key sent!");
+}
+
+void Client::sendText(const ClientId& myClientId, const ClientId& destClientId, const SymmetricKey& symmkey, const string& text) {
+	LOG("Sending message...");
+
+	//Request Header
+	request.pack_clientId(myClientId);
+	request.pack_version();
+	request.pack_code(RequestCodes::sendMessage);
+
+	//Prepare request message header
+	MessageHeader msgHeader;
+	msgHeader.messageType = (MessageType)MessageTypes::sendMessage; //Cast enum to its value
+	memcpy(msgHeader.dest_clientId, destClientId, S_CLIENT_ID);
+
+	//Encrypt text using symm key
+	AESWrapper aeswrapper(symmkey, S_SYMMETRIC_KEY);
+	string cipher = aeswrapper.encrypt(text.c_str(), text.size());
+
+	//Set message content size
+	msgHeader.contentSize = cipher.size();
+
+	//Pack payload size
+	PayloadSize payloadSize = sizeof(msgHeader) + msgHeader.contentSize;
+	request.pack_payloadSize(payloadSize);
+
+	//Pack message header
+	request.pack_message_header(msgHeader);
+
+	//Pack message content
+	request.pack_payload((const unsigned char*)cipher.c_str(), cipher.size());
+
+	//Go
+	sendRequest();
+
+
+	//Get response
+	ResponseHeader header = recvResponseHeader(ResponseCodes::messageSent);
+	LOG("Server response success!");
+
+	//Get response payload
+	ClientId response_dest_client_id;
+	recvClientId(response_dest_client_id);
+	MessageId messageId = recvMessageId();
+
+	LOG("Response client id: ");
+	hexify((const unsigned char*)response_dest_client_id, S_CLIENT_ID);
+	LOG("Response message id: " << messageId);
+
+	LOG("Message sent!");
 }

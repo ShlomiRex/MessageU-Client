@@ -132,6 +132,15 @@ string Menu::readUsername()
 	}
 }
 
+string Menu::readText()
+{
+	LOG("Please type the message:");
+	string line;
+	getline(cin, line);
+
+	return line;
+}
+
 const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers) const
 {
 	//Check saved clients vector
@@ -158,7 +167,7 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 					if (user_number == (i + 1)) {
 						const auto& x = availableUsers->at(i);
 
-						LOG("You chose user number: " << user_number << " with username: " << x.getUsername());
+						DEBUG("You chose user number: " << user_number << " with username: " << x.getUsername());
 						return x;
 					}
 				}
@@ -204,11 +213,10 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 					string unhex = boost::algorithm::unhex(line);
 
 					for (const auto& x : *availableUsers) {
-						//TODO: Compare client id in possible choices to input
 						ClientId clientId;
 						x.getClientId(clientId);
 
-						string client_id_str((char*)clientId);
+						string client_id_str = buffer_to_str(clientId, S_CLIENT_ID);
 						if (strncmp(client_id_str.c_str(), unhex.c_str(), S_CLIENT_ID) == 0) {
 							return x;
 						}

@@ -4,7 +4,6 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <winsock2.h>
 #include <stdio.h>
 #include <exception>
 #include <windows.h>
@@ -25,9 +24,9 @@
 #include "FileManager.h"
 #include "MessageRequest.h"
 #include "Debug.h"
-#include "AsymmetricCrypto.h"
-#include "SymmetricCrypto.h"
-#include <boost/beast/core/detail/base64.hpp>
+#include "RSAWrapper.h"
+#include "AESWrapper.h"
+#include "MessageU_User.h"
 #pragma comment(lib, "Ws2_32.lib")
 
 //using namespace std; //bad practice
@@ -82,9 +81,12 @@ public:
 		MessageUProtocol::PublicKey& result);
 	const std::vector<MessageUProtocol::MessageResponse>* pullMessages(
 		const MessageUProtocol::ClientId& client_id, 
-		const std::vector<MessageUProtocol::User>& savedUsers);
+		const std::vector<MessageU_User>& users);
 	void sendText(
-		std::string username, std::string text);
+		const MessageUProtocol::ClientId& myClientId,
+		const MessageUProtocol::ClientId& destClientId,
+		const MessageUProtocol::SymmetricKey& symmkey,
+		const std::string& text);
 	void getSymKey(
 		MessageUProtocol::ClientId& my_clientId, MessageUProtocol::ClientId& dest_clientId);
 	void sendSymKey(

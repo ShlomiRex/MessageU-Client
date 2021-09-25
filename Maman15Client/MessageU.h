@@ -4,7 +4,6 @@
 #include "MessageU_User.h"
 #include "Menu.h"
 #include "Client.h"
-#include "AESWrapper.h"
 
 //TODO: When implimented send file, client version is 2!
 //TODO: Else, when send file is not implimented, client version is 1!
