@@ -335,15 +335,15 @@ void MessageU::sendSymmKeyChoice(Client& client)
 	if (index < 0) {
 		throw UserNotFound();
 	}
-	users.at(index).setSymmKey(destUserClientId);
 
 	//Send request
 	client.connect();
 	ClientId myClientId = { 0 };
 	me.getClientId(myClientId);
-	ClientId destClientId = { 0 };
-	destUser.getClientId(destClientId);
-	client.sendSymKey(myClientId, symkey, destClientId, destPubKey); 	//We encrypt with destUser's public key
+	client.sendSymKey(myClientId, symkey, destUserClientId, destPubKey); 	//We encrypt with destUser's public key
+
+	//Set symm key for this dest user, key exchange success
+	users.at(index).setSymmKey(symkey);
 }
 
 void MessageU::aquirePublicKey(Client& client, MessageU_User& destUser) {
