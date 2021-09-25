@@ -8,8 +8,9 @@
 #include <boost/algorithm/hex.hpp> //to read hex from input
 #include "Utils.h"
 #include "MessageU_User.h"
+#include "BufferUtils.h"
 
-#define SHOW_PUBKEY_MAX_CHARACTERS		24U
+#define SHOW_PUBKEY_MAX_CHARACTERS		16U
 
 enum class ClientChoices {
 	registerUser = 10,

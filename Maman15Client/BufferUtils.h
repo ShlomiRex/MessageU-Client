@@ -4,6 +4,9 @@
 #include <exception>
 #include <string>
 
+//Converts a buffer (null terminator is allowed in the middle) and return string.
+std::string buffer_to_str(unsigned char* buffer, size_t s_buf);
+
 //Little endian buffer writer
 class BufferWriter
 {

@@ -39,7 +39,7 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers) const
 			user.getClientId(clientId);
 			string clientId_str = hexify_str(clientId, S_CLIENT_ID);
 
-			LOG("\t" << (i + 1) << ") Username: " << user.getUsername());
+			LOG("\t" << (i + 1) << ") Username: \t\t" << user.getUsername());
 			LOG("\tClient ID: \t\t" << clientId_str);
 
 			//Check public key is not zeroes array
@@ -50,8 +50,9 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers) const
 				LOG("\tPublic key: \t\tNot aquired");
 			}
 			else {
-				string pubkey_str((char*)pubkey);
-				pubkey_str = pubkey_str.substr(0, SHOW_PUBKEY_MAX_CHARACTERS);
+				//string pubkey_str = buffer_to_str(pubkey, S_PUBLIC_KEY);
+				string pubkey_str = buffer_to_str(pubkey, SHOW_PUBKEY_MAX_CHARACTERS);
+				//pubkey_str = pubkey_str.substr(0, SHOW_PUBKEY_MAX_CHARACTERS - 1);
 				pubkey_str = hexify_str((unsigned char*)pubkey_str.c_str(), pubkey_str.size());
 				LOG("\tPublic key: \t\t" << pubkey_str << "... (" << S_PUBLIC_KEY << " bytes)");
 			}

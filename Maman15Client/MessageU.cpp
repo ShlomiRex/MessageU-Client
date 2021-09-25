@@ -272,11 +272,7 @@ void MessageU::pullMessagesChoice(Client& client)
 				//Save the symmetric key
 				//NOTE: WE HAVE THE SAME PROBLEM JUST AS SEND SYMM KEY! WE NEED THE STRING TO CONTAIN NULL TERMINATORS.
 				//string symmkey_cipher(msg.msgContent);
-				string symmkey_cipher;
-				for (size_t i = 0; i < msg.msgSize; i++) {
-					const char c = msg.msgContent[i];
-					symmkey_cipher.push_back(c);
-				}
+				string symmkey_cipher = buffer_to_str((unsigned char*)msg.msgContent, msg.msgSize);
 
 				//Read and decode private key
 				string saved_priv_key = FileManager::getSavedPrivateKey();

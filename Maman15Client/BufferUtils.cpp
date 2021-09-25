@@ -166,3 +166,12 @@ void BufferReader::addOffset(size_t amount) {
 
     offset += amount;
 }
+
+std::string buffer_to_str(unsigned char* buffer, size_t s_buf)
+{
+    string res;
+    for (size_t i = 0; i < s_buf; i++) {
+        res.push_back(buffer[i]);
+    }
+    return res;
+}

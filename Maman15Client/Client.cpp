@@ -507,11 +507,7 @@ void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId&
 
 	//string tmp_pubkey(dest_client_pubKey); //THIS WHAT CAUSED A LOT OF ISSUES AND I SPENT TONS OF TIME DEBUGGING WHY I GET DER DECODE ERROR.
 	//APPERANTLY, STRING STOPS AT TERMINATOR. BUT IN OUR CASE, WE WANT TERMINATORS INSIDE THE STRING.
-	string tmp_pubkey;
-	for (size_t i = 0; i < S_PUBLIC_KEY; i++) {
-		const char c = dest_client_pubKey[i];
-		tmp_pubkey.push_back(c);
-	}
+	string tmp_pubkey = buffer_to_str(dest_client_pubKey, S_PUBLIC_KEY);
 
 	//Encrypt symm key
 	RSAPublicWrapper rsapub(tmp_pubkey);

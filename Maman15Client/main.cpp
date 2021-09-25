@@ -105,12 +105,13 @@ void foo() {
 }
 
 void RSA_BASE64_TEST() {
+	const char* file_name = "test.txt";
 	RSAPrivateWrapper rsaPrivWrapper;
 	string privkey = rsaPrivWrapper.getPrivateKey();
 	string pubkey = rsaPrivWrapper.getPublicKey();
 	//Write base64 to file
 	{
-		ofstream file("test.txt");
+		ofstream file(file_name);
 		string base64 = Base64Wrapper::encode(privkey);
 		file.write(base64.c_str(), base64.size());
 		file.close();
@@ -118,7 +119,7 @@ void RSA_BASE64_TEST() {
 	//Read base64 from file
 	string decoded_privkey;
 	{
-		ifstream file("test.txt");
+		ifstream file(file_name);
 
 		char buffer[2048] = { 0 };
 		file.read(buffer, 2048);
@@ -168,6 +169,7 @@ void RSA_BASE64_TEST() {
 
 		assert(client2_plain.compare(client1_plain) == 0);
 	}
+	std::remove(file_name);
 }
 
 int main()
