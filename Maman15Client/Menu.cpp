@@ -3,7 +3,7 @@
 using namespace std;
 using namespace MessageUProtocol;
 
-void Menu::show(const string& myUsername) const {
+void Menu::show(const string& myUsername) {
 	if ((string)(myUsername) != "") {
 		LOG("Hello " << myUsername << "!");
 	}
@@ -25,10 +25,11 @@ void Menu::show(const string& myUsername) const {
 	LOG("50) Send a text message");
 	LOG("51) Send a request for symmetric key");
 	LOG("52) Send your symmetic key");
+	LOG("53) Send file");
 	LOG("0) Exit client");
 }
 
-void Menu::showUsers(const vector<MessageU_User>* availableUsers) const
+void Menu::showUsers(const vector<MessageU_User>* availableUsers)
 {
 	if (availableUsers->size() != 0) {
 		LOG("Available users:");
@@ -75,7 +76,7 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers) const
 	}
 }
 
-ClientChoices Menu::get_choice(const string& myUsername) const
+ClientChoices Menu::get_choice(const string& myUsername)
 {
 	string line;
 
@@ -102,6 +103,8 @@ ClientChoices Menu::get_choice(const string& myUsername) const
 					return ClientChoices::sendReqSymmetricKey;
 				case 52:
 					return ClientChoices::sendSymmetricKey;
+				case 53:
+					return ClientChoices::sendFile;
 				case 0:
 					return ClientChoices::exitProgram;
 				default:
@@ -127,8 +130,23 @@ string Menu::readUsername()
 	while (true) {
 		LOG("Please type desired username (non-empty and maximum " << S_USERNAME << " characters): ");
 		getline(cin, username); //for now, allow any string as username. if server is not happy we get error response anyway.
+
+		bool ascii_ok = true;
+		for (char c : username) {
+			int i_c = (int)c;
+			if (i_c < USERNAME_ALLOW_ASCII_START || i_c > USERNAME_ALLOW_ASCII_END) {
+				LOG("Username must contain characters only from 32 in ascii to 127 in ascii.");
+				ascii_ok = false;
+				break;
+			}
+		}
+		if (!ascii_ok)
+			continue;
+
 		if (username.size() >= 1 && username.size() <= S_USERNAME)
 			return username;
+		else
+			LOG("Incorrect allowed username length.");
 	}
 }
 
@@ -141,7 +159,23 @@ string Menu::readText()
 	return line;
 }
 
-const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers) const
+std::string Menu::chooseFile()
+{
+	while (true) {
+		LOG("Please type the file path:");
+		string path;
+		getline(cin, path);
+		bool exists = boost::filesystem::exists(path);
+		if (exists) {
+			return path;
+		}
+		else {
+			LOG("File doesn't exist. Please type valid file path.");
+		}
+	}
+}
+
+const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers)
 {
 	//Check saved clients vector
 	if (availableUsers->size() == 0) {

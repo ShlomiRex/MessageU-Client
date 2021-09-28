@@ -9,8 +9,11 @@
 #include "Utils.h"
 #include "MessageU_User.h"
 #include "BufferUtils.h"
+#include <boost/filesystem.hpp>
 
 #define SHOW_PUBKEY_MAX_CHARACTERS		16U
+#define USERNAME_ALLOW_ASCII_START		32U
+#define USERNAME_ALLOW_ASCII_END		127U
 
 enum class ClientChoices {
 	registerUser = 10,
@@ -28,15 +31,18 @@ class Menu
 {
 public:
 	//Prints
-	void show(const std::string& myUsername) const;
-	void showUsers(const std::vector<MessageU_User>* availableUsers) const;
+
+	static void show(const std::string& myUsername);
+	static void showUsers(const std::vector<MessageU_User>* availableUsers);
 
 	//Read input
-	ClientChoices get_choice(const std::string& myUsername) const;
-	const MessageU_User chooseUser(const std::vector<MessageU_User>* availableUsers) const;
-	bool yesNoChoice(std::string prompt, bool yesIsDefaultChoice);
-	std::string readUsername();
-	std::string readText();
+
+	static ClientChoices get_choice(const std::string& myUsername);
+	static const MessageU_User chooseUser(const std::vector<MessageU_User>* availableUsers);
+	static bool yesNoChoice(std::string prompt, bool yesIsDefaultChoice);
+	static std::string readUsername();
+	static std::string readText();
+	static std::string chooseFile();
 };
 
 struct EmptyClientsList : public std::exception {

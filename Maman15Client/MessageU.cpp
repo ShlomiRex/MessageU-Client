@@ -60,8 +60,8 @@ void MessageU::start()
 {
 	while (true) {
 		string myUsername = me.getUsername();
-		menu.show(myUsername);
-		ClientChoices choice = menu.get_choice(myUsername);
+		Menu::show(myUsername);
+		ClientChoices choice = Menu::get_choice(myUsername);
 
 		//Create client for the request. (one per choice)
 		Client client(ip, port, CLIENT_VERSION);
@@ -82,14 +82,14 @@ void MessageU::start()
 			else if (choice == ClientChoices::sendReqSymmetricKey) {
 				sendReqSymmKeyChoice(client);
 			}
-			else if (choice == ClientChoices::sendFile) {
-				sendFileChoice(client);
-			}
 			else if (choice == ClientChoices::reqPullWaitingMessages) {
 				pullMessagesChoice(client);
 			}
 			else if (choice == ClientChoices::sendSymmetricKey) {
 				sendSymmKeyChoice(client);
+			}
+			else if (choice == ClientChoices::sendFile) {
+				sendFileChoice(client);
 			}
 			else if (choice == ClientChoices::exitProgram) {
 				break;
@@ -101,21 +101,21 @@ void MessageU::start()
 		catch (EmptyClientsList& e) {
 			LOG(e.what());
 
-			if (menu.yesNoChoice("Would you like me to get clients list automatically?", true)) {
+			if (Menu::yesNoChoice("Would you like me to get clients list automatically?", true)) {
 				getClientsChoice(client);
 			}
 			else {
-				LOG("Returning to main menu.");
+				LOG("Returning to main Menu::");
 			}
 		}
 		catch (NotRegistered& e) {
 			LOG(e.what());
 
-			if (menu.yesNoChoice("Would you like me to register you now?", true)) {
+			if (Menu::yesNoChoice("Would you like me to register you now?", true)) {
 				registerChoice(client);
 			}
 			else {
-				LOG("Returning to main menu.");
+				LOG("Returning to main Menu::");
 			}
 		}
 		catch (EmptyPublicKey& e) {
@@ -125,11 +125,11 @@ void MessageU::start()
 
 			stringstream ss;
 			ss << "Would you like me to automatically get the public key of '" << destUser.getUsername() << "'?";
-			if (menu.yesNoChoice(ss.str(), true)) {
+			if (Menu::yesNoChoice(ss.str(), true)) {
 				aquirePublicKey(client, destUser);
 			}
 			else {
-				LOG("Returning to main menu.");
+				LOG("Returning to main Menu::");
 			}
 		}
 		catch (exception& e) {
@@ -145,7 +145,7 @@ void MessageU::registerChoice(Client& client)
 {
 	string current_username = me.getUsername();
 	if (current_username.size() == 0) {
-		string new_username = menu.readUsername();
+		string new_username = Menu::readUsername();
 
 		client.connect();
 		ClientId myClientId;
@@ -162,11 +162,11 @@ void MessageU::registerChoice(Client& client)
 void MessageU::getClientsChoice(Client& client)
 {
 	if (users.size() > 0) {
-		if (menu.yesNoChoice("Warning: getting clients again will result in wipe of saved client's keys, usernames and ids! Are you sure?", false)) {
+		if (Menu::yesNoChoice("Warning: getting clients again will result in wipe of saved client's keys, usernames and ids! Are you sure?", false)) {
 			goto get_users;
 		}
 		else {
-			LOG("Returning to main menu.");
+			LOG("Returning to main Menu::");
 			return;
 		}
 	}
@@ -203,22 +203,22 @@ get_users:
 
 void MessageU::getPublicKeyChoice(Client& client)
 {
-	menu.showUsers(&users);
-	MessageU_User destUser = menu.chooseUser(&users);
+	Menu::showUsers(&users);
+	MessageU_User destUser = Menu::chooseUser(&users);
 	aquirePublicKey(client, destUser);
 }
 
 void MessageU::sendMessageChoice(Client& client)
 {
-	menu.showUsers(&users);
+	Menu::showUsers(&users);
 
 	//Get destination
-	auto destUser = menu.chooseUser(&users);
+	auto destUser = Menu::chooseUser(&users);
 	ClientId destClientId;
 	destUser.getClientId(destClientId);
 
 	//Get payload
-	string text = menu.readText();
+	string text = Menu::readText();
 
 	//Get symm key
 	SymmetricKey symmkey;
@@ -234,9 +234,9 @@ void MessageU::sendMessageChoice(Client& client)
 
 void MessageU::sendReqSymmKeyChoice(Client& client)
 {
-	menu.showUsers(&users);
+	Menu::showUsers(&users);
 
-	MessageU_User destUser = menu.chooseUser(&users);
+	MessageU_User destUser = Menu::chooseUser(&users);
 
 	client.connect();
 	ClientId myClientId;
@@ -249,8 +249,8 @@ void MessageU::sendReqSymmKeyChoice(Client& client)
 
 void MessageU::sendFileChoice(Client& client)
 {
-	//TODO: Impliment as bonous
-	LOG("Not yet implimented");
+	string filename = Menu::chooseFile();
+	DEBUG("File chosen: " << filename)
 }
 
 void MessageU::pullMessagesChoice(Client& client)
@@ -315,8 +315,8 @@ void MessageU::sendSymmKeyChoice(Client& client)
 		throw NotRegistered();
 	}
 
-	menu.showUsers(&users);
-	MessageU_User destUser = menu.chooseUser(&users);
+	Menu::showUsers(&users);
+	MessageU_User destUser = Menu::chooseUser(&users);
 
 	PublicKey destPubKey = { 0 };
 	destUser.getPublicKey(destPubKey);

@@ -30,7 +30,6 @@ private:
 	std::string ip, port;
 
 	MyUser me;
-	Menu menu;
 
 	//Other clients
 	std::vector<MessageU_User> users;
