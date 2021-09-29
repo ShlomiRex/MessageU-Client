@@ -238,7 +238,7 @@ void Client::getPublicKey(const ClientId& myClientId, const ClientId& dest_clien
 	
 }
 
-const unsigned char* Client::recvNextPayload(uint32_t amountRecvBytes) {
+const unsigned char* Client::recvNextPayload(uint32_t amountRecvBytes) const {
 	if (amountRecvBytes == 0)
 		return nullptr;
 
@@ -268,19 +268,19 @@ User Client::recvNextUserInList() {
 	return result;
 }
 
-void Client::recvClientId(ClientId& result) {
+void Client::recvClientId(ClientId& result) const {
 	auto payload = recvNextPayload(S_CLIENT_ID);
 	memcpy(result, payload, S_CLIENT_ID);
 	delete[] payload;
 }
 
-void Client::recvUsername(Username& result) {
+void Client::recvUsername(Username& result) const {
 	auto payload = recvNextPayload(S_USERNAME);
 	memcpy(result, payload, S_USERNAME);
 	delete[] payload;
 }
 
-void Client::recvPublicKey(PublicKey& result) {
+void Client::recvPublicKey(PublicKey& result) const {
 	auto payload = recvNextPayload(S_PUBLIC_KEY);
 	memcpy(result, payload, S_PUBLIC_KEY);
 	delete[] payload;
@@ -379,6 +379,7 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 
 		vector<MessageResponse>* messages_pulled = new vector<MessageResponse>();
 
+		//While we have payload to read
 		while (pSize > 0) {
 			//Get single message (response from server)
 			//Each receive, we substract amount of bytes left to read.
@@ -424,26 +425,35 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 					break;
 				}
 			}
-			//Get sender username
+			//Set response username
 			memcpy(msgResponse.sender.username, sender.getUsername().c_str(), S_USERNAME);
-
+			//Check username not null (that we found the sender from users vector)
 			if (is_zero_filled(msgResponse.sender.username, S_USERNAME)) {
 				LOG("ERROR: Couldn't map username to client id: ");
 				hexify((const unsigned char*)msgResponse.sender.client_id, S_CLIENT_ID);
 				throw exception("Couldn't convert client id to username, in order to display the message.");
 			}
+			//Get sender symm key
+			SymmetricKey senderSymmKey;
+			sender.getSymmetricKey(senderSymmKey);
+
+
 
 			//Print message
 			cout << endl;
 			cout << "From: " << msgResponse.sender.username << endl;
 			cout << "Content: " << endl;
 
+			//cast to enum
+			MessageTypes _msg_msgType_enum = MessageTypes(msgResponse.msgType); 
+
 			//Check type of message, and display diffirent contents based on that.
-			MessageTypes _msg_msgType_enum = MessageTypes(msgResponse.msgType);
 			if (_msg_msgType_enum == MessageTypes::reqSymmetricKey) {
+				DEBUG("Handling message type: 'request symmetric key'...");
 				cout << "Request for symmetric key" << endl;
 			}
 			else if (_msg_msgType_enum == MessageTypes::sendSymmetricKey) {
+				DEBUG("Handling message type: 'send symmetric key'...");
 				cout << "Symmetric key received" << endl;
 				
 				//Get symmetric key (message content) from server
@@ -453,47 +463,55 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				msgResponse.msgContent = msg_msgContent; //this is pointer
 			}
 			else if (_msg_msgType_enum == MessageTypes::sendMessage) {
-				//TODO: Decrypt
+				DEBUG("Handling message type: 'send message'...");
+
 				size_t msg_bytes_left = msgResponse.msgSize;
-				size_t msg_bytes_read = 0;
 				while (msg_bytes_left > 0) {
-					MessageContent msg_content = nullptr;
+					size_t bytes_read = 0;
+					string chunk = this->recvMessageContentChunkDec(msg_bytes_left, senderSymmKey, bytes_read);
 
-					//If we can read more than 1 packet
-					if (msg_bytes_left > S_PACKET_SIZE) {
-						auto content = recvNextPayload(S_PACKET_SIZE);
-						msg_bytes_read = S_PACKET_SIZE; //Save amount of bytes read
-						pSize -= S_PACKET_SIZE; //Decrease total payload size left
-						msg_bytes_left -= S_PACKET_SIZE;  //Decrease message content payload size left
+					pSize -= bytes_read; //Decrement total payload size left
+					msg_bytes_left -= bytes_read; //Decrement message content size left
 
-						msg_content = content;
-					}
-					else {
-						auto content = recvNextPayload(msg_bytes_left);
-						msg_bytes_read = msg_bytes_left; //Save amount of bytes read
-						pSize -= msg_bytes_left; //Decrease total payload size left
-						msg_bytes_left -= msg_bytes_left; //Decrease message content payload size left (in this case, we left with zero, and exit loop)
-
-						msg_content = content;
-					}
-
-					//Get sender symm key
-					SymmetricKey senderSymmKey;
-					sender.getSymmetricKey(senderSymmKey);
-
-					//Decrypt cipher with sender's symm key
-					AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
-					string plain = aeswrapper.decrypt((const char*)msg_content, msg_bytes_read);
-
-					//Print chiper's plain text block, without newline
-					cout << plain;
-
-					//Free payload
-					delete[] msg_content;
+					cout << chunk;
 				}
 				//Got all the message
 				//End text message content with newline
 				cout << endl;
+			}
+			else if (_msg_msgType_enum == MessageTypes::sendFile) {
+				DEBUG("Handling message type: 'send file'...");
+
+				//Create temporary file
+				boost::filesystem::path temp_path = boost::filesystem::unique_path();
+				boost::filesystem::ofstream temp_file;
+				temp_file.open(temp_path);
+
+				//Read chunk by chunk
+				size_t msg_bytes_left = msgResponse.msgSize;
+				while (msg_bytes_left > 0) {
+					size_t bytes_read = 0;
+					string chunk = this->recvMessageContentChunkDec(msg_bytes_left, senderSymmKey, bytes_read);
+
+					pSize -= bytes_read; //Decrement total payload size left
+					msg_bytes_left -= bytes_read; //Decrement message content size left
+
+					//Write to file a single chunk
+					temp_file.write(chunk.c_str(), chunk.size());
+				}
+
+				if (pSize != 0) {
+					throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
+				}
+				if (msg_bytes_left != 0) {
+					throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
+				}
+
+				//Close file, flush
+				temp_file.close();
+
+				//For testing, copy the file to some place you can look at the file
+				boost::filesystem::copy_file(temp_path, "file_received_from_server.bin");
 			}
 			else {
 				LOG("ERROR: Message type: " << (int)msgResponse.msgType << " is not recognized.");
@@ -678,10 +696,43 @@ void Client::sendFile(const ClientId& myClientId, const SymmetricKey& symmkey, c
 		//Send raw bytes, as payload
 		this->socket->send(boost::asio::buffer(cipher));
 
-		LOG("Cipher length: " << cipherlen);
+		DEBUG("Cipher length: " << cipherlen);
 	}
 
 
 
 	LOG("File sent!");
+}
+
+string Client::recvMessageContentChunkDec(size_t available_bytes, const SymmetricKey& senderSymmKey, size_t& result_bytes_read) const {
+	MessageContent msg_content;
+	size_t msg_bytes_read = 0; //Save amount of bytes read from socket, for this chunk
+
+
+	//Calculate amount of bytes to read from socket, by given amount of clear text(plain) chunk size, by using AES CBS formula:  cipherLen = (clearLen/16 + 1) * 16;
+	size_t s_plain_chunk = S_PACKET_SIZE;
+	size_t s_cipher_chunk = (s_plain_chunk / 16 + 1) * 16;
+
+	//If we can read 1 chunk, at least
+	if (available_bytes > s_cipher_chunk) {
+		auto content = recvNextPayload(s_cipher_chunk);
+		msg_bytes_read = s_cipher_chunk; 
+		result_bytes_read = s_cipher_chunk;
+
+		msg_content = content;
+	}
+	//Else, we read the amount of bytes left
+	else {
+		auto content = recvNextPayload(available_bytes);
+		msg_bytes_read = available_bytes;
+		result_bytes_read = available_bytes;
+
+		msg_content = content;
+	}
+
+	//Decrypt cipher with sender's symm key
+	AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
+	string plain = aeswrapper.decrypt((const char*)msg_content, msg_bytes_read);
+
+	return plain;
 }

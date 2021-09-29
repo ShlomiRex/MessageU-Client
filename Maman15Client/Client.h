@@ -53,16 +53,18 @@ private:
 	ResponseHeader recvResponseHeader(MessageUProtocol::ResponseCodes requiredCode);
 	
 	//General function to receive required amount of bytes in socket.
-	const unsigned char* recvNextPayload(uint32_t amountRecvBytes);
+	const unsigned char* recvNextPayload(uint32_t amountRecvBytes) const;
 
 	//Spesific recv functions
 	MessageUProtocol::User recvNextUserInList();
-	void recvClientId(MessageUProtocol::ClientId& result);
-	void recvUsername(MessageUProtocol::Username& result);
-	void recvPublicKey(MessageUProtocol::PublicKey& result);
+	void recvClientId(MessageUProtocol::ClientId& result) const;
+	void recvUsername(MessageUProtocol::Username& result) const;
+	void recvPublicKey(MessageUProtocol::PublicKey& result) const;
 	MessageUProtocol::MessageId recvMessageId();
 	MessageUProtocol::MessageType recvMessageType();
 	MessageUProtocol::MessageSize recvMessageSize();
+	//Special decryption function to recv plain text chunk from message payload, by given message type. (Can be: sendText or sendFile)
+	std::string recvMessageContentChunkDec(size_t available_bytes, const MessageUProtocol::SymmetricKey& senderSymmKey, size_t& result_bytes_read) const;
 
 public:
 	Client(const std::string& ip, const std::string& port, const MessageUProtocol::Version clientVersion = 1);

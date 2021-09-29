@@ -1,0 +1,5 @@
+20
+40
+53
+ShlomiRex
+data.txt

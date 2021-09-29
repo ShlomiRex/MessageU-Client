@@ -105,7 +105,7 @@ void MessageU::start()
 				getClientsChoice(client);
 			}
 			else {
-				LOG("Returning to main Menu::");
+				LOG("Returning to main Menu");
 			}
 		}
 		catch (NotRegistered& e) {
@@ -115,7 +115,7 @@ void MessageU::start()
 				registerChoice(client);
 			}
 			else {
-				LOG("Returning to main Menu::");
+				LOG("Returning to main Menu");
 			}
 		}
 		catch (EmptyPublicKey& e) {
@@ -129,7 +129,7 @@ void MessageU::start()
 				aquirePublicKey(client, destUser);
 			}
 			else {
-				LOG("Returning to main Menu::");
+				LOG("Returning to main Menu");
 			}
 		}
 		catch (EmptySymmKey& e) {
@@ -175,7 +175,7 @@ void MessageU::getClientsChoice(Client& client)
 			goto get_users;
 		}
 		else {
-			LOG("Returning to main Menu::");
+			LOG("Returning to main Menu");
 			return;
 		}
 	}
@@ -376,7 +376,6 @@ void MessageU::aquirePublicKey(Client& client, MessageU_User& destUser) {
 	}
 	users.at(index).setPublicKey(destPubKey);
 }
-
 
 void MessageU::sendFileChoice(Client& client)
 {

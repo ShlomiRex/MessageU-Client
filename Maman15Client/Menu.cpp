@@ -223,7 +223,7 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 				string username = x.getUsername();
 
 				if (username == line) {
-					LOG("You chose username: " << username);
+					DEBUG("You chose username: " << username);
 					return x;
 				}
 			}
