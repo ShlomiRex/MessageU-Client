@@ -7,7 +7,7 @@
 
 //TODO: When implimented send file, client version is 2!
 //TODO: Else, when send file is not implimented, client version is 1!
-#define CLIENT_VERSION 1
+#define CLIENT_VERSION 2
 
 //Small class extension of MessageU_User
 //MyUser can be registered or not
@@ -60,5 +60,11 @@ public:
 struct UserNotFound : public std::exception {
 	const char* what() const throw() {
 		return "Couldn't find user from users list.";
+	}
+};
+
+struct EmptySymmKey : public std::exception {
+	const char* what() const throw() {
+		return "Symmetric key is empty. You need to get symmetric key.";
 	}
 };

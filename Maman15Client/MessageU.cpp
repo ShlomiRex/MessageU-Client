@@ -132,6 +132,15 @@ void MessageU::start()
 				LOG("Returning to main Menu::");
 			}
 		}
+		catch (EmptySymmKey& e) {
+			LOG(e.what());
+			//To get symmetric key, user must first get public key.
+			//Then send symm key request.
+			//Then pull messages.
+			//Then get symm key.
+
+			//It can't be done automatically. So we only print the error.
+		}
 		catch (exception& e) {
 			LOG(e.what());
 		}
@@ -223,7 +232,11 @@ void MessageU::sendMessageChoice(Client& client)
 	//Get symm key
 	SymmetricKey symmkey;
 	destUser.getSymmetricKey(symmkey);
+	if (is_zero_filled(symmkey, S_SYMMETRIC_KEY)) {
+		throw EmptySymmKey();
+	}
 
+	//Get my client id
 	ClientId myClientId;
 	me.getClientId(myClientId);
 
@@ -245,12 +258,6 @@ void MessageU::sendReqSymmKeyChoice(Client& client)
 	ClientId destClientId;
 	destUser.getClientId(destClientId);
 	client.getSymKey(myClientId, destClientId);
-}
-
-void MessageU::sendFileChoice(Client& client)
-{
-	string filename = Menu::chooseFile();
-	DEBUG("File chosen: " << filename)
 }
 
 void MessageU::pullMessagesChoice(Client& client)
@@ -370,3 +377,38 @@ void MessageU::aquirePublicKey(Client& client, MessageU_User& destUser) {
 	users.at(index).setPublicKey(destPubKey);
 }
 
+
+void MessageU::sendFileChoice(Client& client)
+{
+	//Get destination
+	Menu::showUsers(&users);
+	auto destUser = Menu::chooseUser(&users);
+	ClientId destClientId;
+	destUser.getClientId(destClientId);
+
+	//Get symm key
+	SymmetricKey symmkey;
+	destUser.getSymmetricKey(symmkey);
+	if (is_zero_filled(symmkey, S_SYMMETRIC_KEY)) {
+		throw EmptySymmKey();
+	}
+
+	//Get file
+	string filepath = Menu::chooseFile();
+	DEBUG("File chosen: " << filepath);
+	size_t filesize = boost::filesystem::file_size(filepath);
+
+	//Get my client id
+	ClientId myClientId;
+	me.getClientId(myClientId);
+
+	//Open read stream
+	ifstream filestream(filepath);
+
+	//Go
+	client.connect();
+	client.sendFile(myClientId, symmkey, destClientId, filesize, filestream);
+
+	//Close file stream
+	filestream.close();
+}

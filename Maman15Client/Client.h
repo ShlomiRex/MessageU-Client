@@ -27,6 +27,7 @@
 #include "RSAWrapper.h"
 #include "AESWrapper.h"
 #include "MessageU_User.h"
+#include <fstream>
 #pragma comment(lib, "Ws2_32.lib")
 
 //using namespace std; //bad practice
@@ -64,13 +65,13 @@ private:
 	MessageUProtocol::MessageSize recvMessageSize();
 
 public:
-	Client(std::string ip, std::string port, MessageUProtocol::Version clientVersion = 1);
+	Client(const std::string& ip, const std::string& port, const MessageUProtocol::Version clientVersion = 1);
 	~Client();
 
 	void connect();
 
 	void registerUser(
-		std::string user, 
+		const std::string& user,
 		MessageUProtocol::ClientId& result_clientId);
 	void getClients(
 		const MessageUProtocol::ClientId& myClientId,
@@ -88,12 +89,19 @@ public:
 		const MessageUProtocol::SymmetricKey& symmkey,
 		const std::string& text);
 	void getSymKey(
-		MessageUProtocol::ClientId& my_clientId, MessageUProtocol::ClientId& dest_clientId);
+		const MessageUProtocol::ClientId& my_clientId,
+		const MessageUProtocol::ClientId& dest_clientId);
 	void sendSymKey(
-		MessageUProtocol::ClientId& myClientId, 
-		MessageUProtocol::SymmetricKey& mySymmKey, 
-		MessageUProtocol::ClientId& dest_clientId, 
-		MessageUProtocol::PublicKey& dest_client_pubKey);
+		const MessageUProtocol::ClientId& myClientId,
+		const MessageUProtocol::SymmetricKey& mySymmKey,
+		const MessageUProtocol::ClientId& dest_clientId,
+		const MessageUProtocol::PublicKey& dest_client_pubKey);
+	void sendFile(
+		const MessageUProtocol::ClientId& myClientId,
+		const MessageUProtocol::SymmetricKey& mySymmKey,
+		const MessageUProtocol::ClientId& dest_clientId,
+		size_t filesize,
+		std::ifstream& filestream);
 
 };
 

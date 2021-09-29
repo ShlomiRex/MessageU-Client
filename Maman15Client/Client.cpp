@@ -5,7 +5,7 @@ using namespace MessageUProtocol;
 
 #define DEBUG_PREFIX "[Client] "
 
-Client::Client(string ip, string port, Version clientVersion) : request(clientVersion) {
+Client::Client(const string& ip, const string& port, const Version clientVersion) : request(clientVersion) {
 	//Initialize all internal fields and connect to server.
 
 	this->io_context = new boost::asio::io_context();
@@ -23,7 +23,7 @@ Client::~Client() {
 	delete endpoints;
 }
 
-void Client::registerUser(string username, ClientId& result_clientId) {
+void Client::registerUser(const string& username, ClientId& result_clientId) {
 	LOG("Registering user...");
 
 	//Check if the info file exists
@@ -310,7 +310,7 @@ MessageSize Client::recvMessageSize() {
 	return msgSize;
 }
 
-void Client::getSymKey(ClientId& my_clientId, ClientId& dest_clientId) {
+void Client::getSymKey(const ClientId& my_clientId, const ClientId& dest_clientId) {
 	LOG("Sending symmetric key request...");
 
 	//Request Header
@@ -520,7 +520,7 @@ void Client::connect() {
 	DEBUG("Connected!");
 }
 
-void Client::sendSymKey(ClientId& myClientId, SymmetricKey& mySymmKey, ClientId& dest_clientId, PublicKey& dest_client_pubKey) {
+void Client::sendSymKey(const ClientId& myClientId, const SymmetricKey& mySymmKey, const ClientId& dest_clientId, const PublicKey& dest_client_pubKey) {
 	LOG("Sending my symmetric key...");
 
 	//Request Header
@@ -622,4 +622,66 @@ void Client::sendText(const ClientId& myClientId, const ClientId& destClientId, 
 	LOG("Response message id: " << messageId);
 
 	LOG("Message sent!");
+}
+
+void Client::sendFile(const ClientId& myClientId, const SymmetricKey& symmkey, const ClientId& destClientId, size_t filesize, ifstream& filestream) {
+	LOG("Sending file...");
+
+	//Calculate amount of bytes to send to server
+	size_t s_chunk = S_PACKET_SIZE;										//Amount of desired bytes to read from file and send
+	size_t s_cipher_chunk = (s_chunk / 16 + 1) * 16;					//Amount of bytes needed for each chunk, after AES-CBS encryption, source: https://stackoverflow.com/a/3284136
+	size_t num_chunks = (filesize / s_chunk) + 1;						//Number of chunks in total we want to send. If filesize < s_chunk then we still need to send 1 chunk, not 0. So add 1.
+	size_t total_file_cipher_size = num_chunks * s_cipher_chunk;		//Total amount of bytes we need to send for encrypted chunks
+
+
+	//Request Header
+	request.pack_clientId(myClientId);
+	request.pack_version();
+	request.pack_code(RequestCodes::sendMessage);
+
+	//Prepare request message header
+	MessageHeader msgHeader;
+	msgHeader.messageType = (MessageType)MessageTypes::sendFile; //Cast enum to its value
+	memcpy(msgHeader.dest_clientId, destClientId, S_CLIENT_ID);
+	msgHeader.contentSize = total_file_cipher_size;						//Here we set the amount of bytes we want to send
+
+	//Pack payload size
+	PayloadSize payloadSize = sizeof(msgHeader) + msgHeader.contentSize;
+	request.pack_payloadSize(payloadSize);
+
+	//Pack message header
+	request.pack_message_header(msgHeader);
+
+	//We don't pack payload, for now
+
+	//Send the request, need to send the rest of the message content
+	sendRequest();
+
+	size_t bytes_left_to_read = filesize;
+	AESWrapper aeswrapper(symmkey, S_SYMMETRIC_KEY);
+	char read_buffer[S_PACKET_SIZE] = { 0 };
+	while (bytes_left_to_read > 0) {
+		//Read from file
+		if (bytes_left_to_read < S_PACKET_SIZE) {
+			filestream.read(read_buffer, bytes_left_to_read);
+			bytes_left_to_read -= bytes_left_to_read; //Equal to zero
+		}
+		else {
+			filestream.read(read_buffer, S_PACKET_SIZE);
+			bytes_left_to_read -= S_PACKET_SIZE;
+		}
+
+		//Encrypt text using symm key
+		string cipher = aeswrapper.encrypt(read_buffer, S_PACKET_SIZE);
+		size_t cipherlen = cipher.size();
+
+		//Send raw bytes, as payload
+		this->socket->send(boost::asio::buffer(cipher));
+
+		LOG("Cipher length: " << cipherlen);
+	}
+
+
+
+	LOG("File sent!");
 }
