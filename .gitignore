@@ -9,6 +9,8 @@ enc_temp_folder/
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+cmake-build-debug/
+
 # User-specific files
 *.rsuser
 *.suo
