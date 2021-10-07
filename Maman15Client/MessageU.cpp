@@ -171,6 +171,9 @@ void MessageU::registerChoice(Client& client)
 void MessageU::getClientsChoice(Client& client)
 {
 	if (users.size() > 0) {
+		// Maybe we just want to see what we got. It's a nice touch.
+		Menu::showUsers(&users);
+
 		if (Menu::yesNoChoice("Warning: getting clients again will result in wipe of saved client's keys, usernames and ids! Are you sure?", false)) {
 			goto get_users;
 		}
@@ -287,12 +290,19 @@ void MessageU::pullMessagesChoice(Client& client)
 				string symmkey_cipher = buffer_to_str((unsigned char*)msg.msgContent, msg.msgSize);
 
 				//Read and decode private key
+				DEBUG("Decoding my private key from info file...");
 				string saved_priv_key = FileManager::getSavedPrivateKey();
 				string privkey = Base64Wrapper::decode(saved_priv_key);
 
 				//Decrypt message
+				DEBUG("Decrypting message content (" << msg.msgSize << " bytes)...");
 				RSAPrivateWrapper rsaPrivWrapper(privkey);
 				string plain_symmKey = rsaPrivWrapper.decrypt(symmkey_cipher);
+				DEBUG("Decrypt success! Plain text is " << plain_symmKey.size() << " bytes.");
+#ifdef DEBUGGING
+				DEBUG("Decrypted private key:");
+				hexify((const unsigned char*)plain_symmKey.c_str(), plain_symmKey.size());
+#endif
 				
 				//Cast message content to symm key
 				//SymmetricKey symmkey;
@@ -303,11 +313,15 @@ void MessageU::pullMessagesChoice(Client& client)
 				if (index < 0) {
 					throw UserNotFound();
 				}
+
 				//Set symmetric key of the sender
 				//users.at(index).setSymmKey(symmkey);
 				SymmetricKey symmKey;
 				str_to_symmKey(plain_symmKey, symmKey);
 				users.at(index).setSymmKey(symmKey);
+
+				//Free content pointer
+				delete[] msg.msgContent;
 			}
 		}
 		//Free vector pointer
@@ -337,8 +351,11 @@ void MessageU::sendSymmKeyChoice(Client& client)
 	unsigned char buff[S_SYMMETRIC_KEY];
 	AESWrapper aes(AESWrapper::GenerateKey(buff, S_SYMMETRIC_KEY), S_SYMMETRIC_KEY);
 	memcpy(symkey, buff, S_SYMMETRIC_KEY);
-	LOG("Generated symm key (" << S_SYMMETRIC_KEY << " bytes):");
+
+#ifdef DEBUGGING
+	DEBUG("Generated symm key (" << S_SYMMETRIC_KEY << " bytes):");
 	hexify((const unsigned char*)symkey, S_SYMMETRIC_KEY);
+#endif
 
 	//Save symm key so we can use it later. Associate symm key with destination client
 	ClientId destUserClientId;

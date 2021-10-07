@@ -463,11 +463,12 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 			}
 			else if (_msg_msgType_enum == MessageTypes::sendSymmetricKey) {
 				DEBUG("Handling message type: 'send symmetric key'...");
-				cout << "Symmetric key received" << endl;
 				
 				//Get symmetric key (message content) from server
 				const unsigned char* msg_msgContent = recvNextPayload(msgResponse.msgSize);
 				pSize -= msgResponse.msgSize;
+
+				cout << "Symmetric key received!" << endl;
 
 				msgResponse.msgContent = msg_msgContent; //this is pointer
 			}
@@ -558,7 +559,7 @@ void Client::connect() {
 }
 
 void Client::sendSymKey(const ClientId& myClientId, const SymmetricKey& mySymmKey, const ClientId& dest_clientId, const PublicKey& dest_client_pubKey) {
-	LOG("Sending my symmetric key...");
+	DEBUG("Sending my symmetric key...");
 
 	//Request Header
 	request.pack_clientId(myClientId);
@@ -575,6 +576,7 @@ void Client::sendSymKey(const ClientId& myClientId, const SymmetricKey& mySymmKe
 	string pubkey_str = buffer_to_str(dest_client_pubKey, S_PUBLIC_KEY);
 
 	//Encrypt symm key
+	DEBUG("Encrypting symm key...");
 	RSAPublicWrapper rsapub(pubkey_str);
 	string cipher = rsapub.encrypt((char*)mySymmKey);
 
