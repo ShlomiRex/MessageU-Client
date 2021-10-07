@@ -420,7 +420,7 @@ void MessageU::sendFileChoice(Client& client)
 	me.getClientId(myClientId);
 
 	//Open read stream
-	ifstream filestream(filepath);
+	ifstream filestream(filepath, std::ios::binary);
 
 	//Go
 	client.connect();

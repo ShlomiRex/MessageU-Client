@@ -63,8 +63,6 @@ private:
 	MessageUProtocol::MessageId recvMessageId();
 	MessageUProtocol::MessageType recvMessageType();
 	MessageUProtocol::MessageSize recvMessageSize();
-	//Special decryption function to recv plain text chunk from message payload, by given message type. (Can be: sendText or sendFile)
-	std::string recvMessageContentChunkDec(size_t available_bytes, const MessageUProtocol::SymmetricKey& senderSymmKey, size_t& result_bytes_read) const;
 
 public:
 	Client(const std::string& ip, const std::string& port, const MessageUProtocol::Version clientVersion = 1);
@@ -105,6 +103,8 @@ public:
 		size_t filesize,
 		std::ifstream& filestream);
 
+	//Calculates AES-CBS cipher size given the plain size. Source: https://stackoverflow.com/a/3284136
+	static size_t calc_cipher_size(size_t plain_size);
 };
 
 struct InitSocketException : public std::exception {
