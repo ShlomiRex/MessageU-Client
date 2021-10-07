@@ -5,16 +5,8 @@ using namespace MessageUProtocol;
 
 void Menu::show(const string& myUsername) {
 	if ((string)(myUsername) != "") {
-		LOG("Hello " << myUsername << "!");
+		LOG("Hello '" << myUsername << "'!");
 	}
-
-#ifdef DEBUGGING
-	if (myClientId != nullptr) {
-		DEBUG("My client id: ");
-		hexify((const unsigned char*)me.client_id, S_CLIENT_ID);
-	}
-#endif
-
 
 	LOG("MessageU client at your service.\n");
 

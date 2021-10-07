@@ -21,6 +21,7 @@ namespace MessageUProtocol {
 //Implicit defenitions
 #define S_FILE_REGISTER		2048U			//Maximum size of me.info
 
+#define S_CIPHER_CHUNK_SIZE (((S_PACKET_SIZE / 16) + 1) * 16)		//When reading S_PACKET_SIZE but the payload is encrypted using AES CBS algorithm, we calculate amount of bytes to read, given the plain text size is S_PACKET_SIZE.
 
 //Op codes
 	enum class RequestCodes {

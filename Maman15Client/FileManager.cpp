@@ -29,8 +29,10 @@ void FileManager::getSavedClientId(ClientId buffer) {
 	for (size_t i = 0; i < S_CLIENT_ID; i++) {
 		buffer[i] = hash.at(i);
 	}
-
-
+#ifdef DEBUGGING
+	DEBUG("My client id: ");
+	hexify(buffer, S_CLIENT_ID);
+#endif
 }
 
 string FileManager::getSavedUsername() {

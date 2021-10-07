@@ -50,12 +50,13 @@ void Client::registerUser(const string& username, ClientId& result_clientId) {
 	string privkey = rsaPrivWrapper.getPrivateKey();
 	string pubkey = rsaPrivWrapper.getPublicKey();
 
-	LOG("Generated public key (" << pubkey.size() << " bytes):");
+#ifdef DEBUGGING
+	DEBUG("Generated public key (" << pubkey.size() << " bytes):");
 	hexify((const unsigned char*)pubkey.c_str(), pubkey.size());
 
-	LOG("Generated private key (" << privkey.size() << " bytes):");
+	DEBUG("Generated private key (" << privkey.size() << " bytes):");
 	hexify((const unsigned char*)privkey.c_str(), privkey.size());
-
+#endif
 	//Test other clients can encrypt with my public key
 	{
 		RSAPublicWrapper rsaPub(pubkey);
@@ -173,7 +174,7 @@ void Client::getClients(const ClientId& myClientId, vector<User>* result) {
 		//Get only the header, for now
 		ResponseHeader header = recvResponseHeader(ResponseCodes::listUsers);
 
-		LOG("Get clients response is success!");
+		DEBUG("Get clients response is success!");
 
 		//We need to read s_payload
 		size_t payloadBytesRead = 0;
@@ -202,7 +203,7 @@ void Client::getClients(const ClientId& myClientId, vector<User>* result) {
 }
 
 void Client::getPublicKey(const ClientId& myClientId, const ClientId& dest_client_id, PublicKey& result) {
-	LOG("Getting public key...");
+	DEBUG("Getting public key...");
 
 	//Pack header
 	request.pack_clientId(myClientId);
@@ -225,12 +226,16 @@ void Client::getPublicKey(const ClientId& myClientId, const ClientId& dest_clien
 		recvClientId(dest_clientId);
 		recvPublicKey(pubKey);
 
-		LOG("Client ID: ");
+#ifdef DEBUGGING
+		DEBUG("Client ID: ");
 		hexify((const unsigned char*)dest_clientId, S_CLIENT_ID);
-		LOG("Public key (" << S_PUBLIC_KEY << " bytes): ");
+		DEBUG("Public key (" << S_PUBLIC_KEY << " bytes): ");
 		hexify((const unsigned char*)pubKey, S_PUBLIC_KEY);
+#endif
 
 		memcpy(result, pubKey, S_PUBLIC_KEY);
+
+		DEBUG("Got public key!");
 	}
 	catch (exception& e) {
 		LOG(e.what());
@@ -311,7 +316,7 @@ MessageSize Client::recvMessageSize() {
 }
 
 void Client::getSymKey(const ClientId& my_clientId, const ClientId& dest_clientId) {
-	LOG("Sending symmetric key request...");
+	DEBUG("Sending symmetric key request...");
 
 	//Request Header
 	request.pack_clientId(my_clientId);
@@ -348,9 +353,12 @@ void Client::getSymKey(const ClientId& my_clientId, const ClientId& dest_clientI
 	recvClientId(response_dest_client_id);
 	MessageId messageId = recvMessageId();
 
-	LOG("Response from server is success! Client destination: ");
+	LOG("Response from server is success!");
+#ifdef DEBUGGING
+	DEBUG("Client destination: ");
 	hexify((const unsigned char*)response_dest_client_id, S_CLIENT_ID);
 	LOG("And message ID: " << messageId);
+#endif
 }
 
 const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, const vector<MessageU_User>& users) {
@@ -377,6 +385,7 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 			return nullptr;
 		}
 
+		//IMPORTANT: We don't add message of type 'file' or 'text', only 'symm key' type. This is due to big files and big messages.
 		vector<MessageResponse>* messages_pulled = new vector<MessageResponse>();
 
 		//While we have payload to read
@@ -475,6 +484,12 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 
 					cout << chunk;
 				}
+				if (pSize != 0) {
+					throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
+				}
+				if (msg_bytes_left != 0) {
+					throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
+				}
 				//Got all the message
 				//End text message content with newline
 				cout << endl;
@@ -485,13 +500,19 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				//Create temporary file
 				boost::filesystem::path temp_path = boost::filesystem::unique_path();
 				boost::filesystem::ofstream temp_file;
-				temp_file.open(temp_path);
+
+				LOG("Saving file to: " << temp_path);
+
+				//Write with binary mode
+				temp_file.open(temp_path, std::ios::binary);
 
 				//Read chunk by chunk
 				size_t msg_bytes_left = msgResponse.msgSize;
 				while (msg_bytes_left > 0) {
 					size_t bytes_read = 0;
+					DEBUG("Getting chunk...");
 					string chunk = this->recvMessageContentChunkDec(msg_bytes_left, senderSymmKey, bytes_read);
+					DEBUG("Got chunk, size: " << chunk.size());
 
 					pSize -= bytes_read; //Decrement total payload size left
 					msg_bytes_left -= bytes_read; //Decrement message content size left
@@ -509,9 +530,7 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 
 				//Close file, flush
 				temp_file.close();
-
-				//For testing, copy the file to some place you can look at the file
-				boost::filesystem::copy_file(temp_path, "file_received_from_server.bin");
+				LOG("Done! File saved!");
 			}
 			else {
 				LOG("ERROR: Message type: " << (int)msgResponse.msgType << " is not recognized.");
@@ -578,16 +597,18 @@ void Client::sendSymKey(const ClientId& myClientId, const SymmetricKey& mySymmKe
 
 	//Get response
 	ResponseHeader header = recvResponseHeader(ResponseCodes::messageSent);
-	LOG("Server response success!");
+	DEBUG("Server response success!");
 
 	//Get response payload
 	ClientId response_dest_client_id;
 	recvClientId(response_dest_client_id);
 	MessageId messageId = recvMessageId();
 
-	LOG("Response client id: ");
+#ifdef DEBUGGING
+	DEBUG("Response client id: ");
 	hexify((const unsigned char*)response_dest_client_id, S_CLIENT_ID);
-	LOG("Response message id: " << messageId);
+	DEBUG("Response message id: " << messageId);
+#endif
 
 	LOG("Symmetric key sent!");
 }
@@ -645,12 +666,16 @@ void Client::sendText(const ClientId& myClientId, const ClientId& destClientId, 
 void Client::sendFile(const ClientId& myClientId, const SymmetricKey& symmkey, const ClientId& destClientId, size_t filesize, ifstream& filestream) {
 	LOG("Sending file...");
 
+	DEBUG("File size: " << filesize);
+
 	//Calculate amount of bytes to send to server
 	size_t s_chunk = S_PACKET_SIZE;										//Amount of desired bytes to read from file and send
 	size_t s_cipher_chunk = (s_chunk / 16 + 1) * 16;					//Amount of bytes needed for each chunk, after AES-CBS encryption, source: https://stackoverflow.com/a/3284136
 	size_t num_chunks = (filesize / s_chunk) + 1;						//Number of chunks in total we want to send. If filesize < s_chunk then we still need to send 1 chunk, not 0. So add 1.
 	size_t total_file_cipher_size = num_chunks * s_cipher_chunk;		//Total amount of bytes we need to send for encrypted chunks
 
+	DEBUG("Number of chunks: " << num_chunks);
+	DEBUG("Calculated total file cipher size: " << total_file_cipher_size);
 
 	//Request Header
 	request.pack_clientId(myClientId);
@@ -678,6 +703,8 @@ void Client::sendFile(const ClientId& myClientId, const SymmetricKey& symmkey, c
 	size_t bytes_left_to_read = filesize;
 	AESWrapper aeswrapper(symmkey, S_SYMMETRIC_KEY);
 	char read_buffer[S_PACKET_SIZE] = { 0 };
+	size_t chunk_num = 1;
+	size_t total_bytes_sent = 0;
 	while (bytes_left_to_read > 0) {
 		//Read from file
 		if (bytes_left_to_read < S_PACKET_SIZE) {
@@ -694,9 +721,12 @@ void Client::sendFile(const ClientId& myClientId, const SymmetricKey& symmkey, c
 		size_t cipherlen = cipher.size();
 
 		//Send raw bytes, as payload
-		this->socket->send(boost::asio::buffer(cipher));
-
-		DEBUG("Cipher length: " << cipherlen);
+		DEBUG("Sending file chunk (Chunk num: " << chunk_num << ") (" << cipher.size() << " bytes)...");
+		chunk_num++;
+		auto buff = boost::asio::buffer(cipher);
+		this->socket->send(buff);
+		total_bytes_sent += buff.size();
+		DEBUG("Sent! Total bytes sent: " << total_bytes_sent << "/" << total_file_cipher_size);
 	}
 
 
@@ -708,16 +738,11 @@ string Client::recvMessageContentChunkDec(size_t available_bytes, const Symmetri
 	MessageContent msg_content;
 	size_t msg_bytes_read = 0; //Save amount of bytes read from socket, for this chunk
 
-
-	//Calculate amount of bytes to read from socket, by given amount of clear text(plain) chunk size, by using AES CBS formula:  cipherLen = (clearLen/16 + 1) * 16;
-	size_t s_plain_chunk = S_PACKET_SIZE;
-	size_t s_cipher_chunk = (s_plain_chunk / 16 + 1) * 16;
-
 	//If we can read 1 chunk, at least
-	if (available_bytes > s_cipher_chunk) {
-		auto content = recvNextPayload(s_cipher_chunk);
-		msg_bytes_read = s_cipher_chunk; 
-		result_bytes_read = s_cipher_chunk;
+	if (available_bytes > S_CIPHER_CHUNK_SIZE) {
+		auto content = recvNextPayload(S_CIPHER_CHUNK_SIZE);
+		msg_bytes_read = S_CIPHER_CHUNK_SIZE;
+		result_bytes_read = S_CIPHER_CHUNK_SIZE;
 
 		msg_content = content;
 	}

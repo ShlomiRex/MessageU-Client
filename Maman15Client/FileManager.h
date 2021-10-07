@@ -7,6 +7,8 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/algorithm/hex.hpp>
 #include "Debug.h"
+#include "BufferUtils.h"
+#include "Utils.h"
 
 //using namespace std;
 //using namespace MessageUProtocol;

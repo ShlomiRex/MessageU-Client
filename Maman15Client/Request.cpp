@@ -84,7 +84,7 @@ void Request::pack_message_header(const MessageHeader& msgHeader)
 
 	//Pack Message Type
 	MessageType _type = (MessageType)msgHeader.messageType;
-	DEBUG("Packing message type (1 byte): " << _type);
+	DEBUG("Packing message type (1 byte): " << (int)_type);
 	writer.write1byte(_type);
 
 	//Pack Contnet Size
