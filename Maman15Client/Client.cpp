@@ -159,7 +159,7 @@ ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 }
 
 void Client::getClients(const ClientId& myClientId, vector<User>* result) {
-	LOG("Getting clients...");
+	DEBUG("Getting clients...");
 
 	request.pack_clientId(myClientId);
 	request.pack_version();
@@ -362,7 +362,7 @@ void Client::getSymKey(const ClientId& my_clientId, const ClientId& dest_clientI
 }
 
 const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, const vector<MessageU_User>& users) {
-	LOG("Pulling waiting messages...");
+	DEBUG("Pulling waiting messages...");
 
 	//Request Header
 	request.pack_clientId(client_id);
@@ -550,6 +550,8 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 	catch (exception& e) {
 		LOG("ERROR: " << e.what());
 	}
+
+	DEBUG("Pulled all messages.");
 }
 
 void Client::connect() {

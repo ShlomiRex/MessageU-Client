@@ -229,15 +229,15 @@ void MessageU::sendMessageChoice(Client& client)
 	ClientId destClientId;
 	destUser.getClientId(destClientId);
 
-	//Get payload
-	string text = Menu::readText();
-
-	//Get symm key
+	//Get symm key. Check if we have the user's symm key.
 	SymmetricKey symmkey;
 	destUser.getSymmetricKey(symmkey);
 	if (is_zero_filled(symmkey, S_SYMMETRIC_KEY)) {
 		throw EmptySymmKey();
 	}
+
+	//Get the message content to send.
+	string text = Menu::readText();
 
 	//Get my client id
 	ClientId myClientId;
@@ -280,10 +280,13 @@ void MessageU::pullMessagesChoice(Client& client)
 	me.getClientId(myClientId);
 	const vector<MessageResponse>* messages = client.pullMessages(myClientId, users);
 
+	DEBUG("Parsing messages...");
 	if (messages != nullptr) {
 		for (const auto& msg : *messages) {
 			MessageTypes _type = (MessageTypes)msg.msgType;
 			if (_type == MessageTypes::sendSymmetricKey) {
+				DEBUG("Found message of type 'sendSymmetricKey'");
+
 				//Save the symmetric key
 				//NOTE: WE HAVE THE SAME PROBLEM JUST AS SEND SYMM KEY! WE NEED THE STRING TO CONTAIN NULL TERMINATORS.
 				//string symmkey_cipher(msg.msgContent);
@@ -325,7 +328,7 @@ void MessageU::pullMessagesChoice(Client& client)
 		//Free vector pointer
 		delete messages;
 	}
-	LOG("Finished handling pull messages request.");
+	DEBUG("Finished handling pull messages request.");
 }
 
 void MessageU::sendSymmKeyChoice(Client& client)
