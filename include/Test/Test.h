@@ -12,5 +12,4 @@ public:
     void foo();
 };
 
-
 #endif //MESSAGEU_CLIENT_TEST_H

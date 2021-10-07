@@ -2,8 +2,8 @@
 // Created by Shlomi Domnenko on 07/10/2021.
 //
 
-#include "Test.h"
+#include "Test/Test.h"
 
 void Test::foo() {
-    std::cout << "Foo" << std::endl;
+    std::cout << "TEST" << std::endl;
 }
