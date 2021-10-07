@@ -616,7 +616,7 @@ void Client::sendSymKey(const ClientId& myClientId, const SymmetricKey& mySymmKe
 }
 
 void Client::sendText(const ClientId& myClientId, const ClientId& destClientId, const SymmetricKey& symmkey, const string& text) {
-	LOG("Sending message...");
+	DEBUG("Sending message...");
 
 	//Request Header
 	request.pack_clientId(myClientId);
@@ -629,6 +629,7 @@ void Client::sendText(const ClientId& myClientId, const ClientId& destClientId, 
 	memcpy(msgHeader.dest_clientId, destClientId, S_CLIENT_ID);
 
 	//Encrypt text using symm key
+	DEBUG("Encrypting message...");
 	AESWrapper aeswrapper(symmkey, S_SYMMETRIC_KEY);
 	string cipher = aeswrapper.encrypt(text.c_str(), text.size());
 
@@ -658,9 +659,11 @@ void Client::sendText(const ClientId& myClientId, const ClientId& destClientId, 
 	recvClientId(response_dest_client_id);
 	MessageId messageId = recvMessageId();
 
-	LOG("Response client id: ");
+#ifdef DEBUGGING
+	DEBUG("Response client id: ");
 	hexify((const unsigned char*)response_dest_client_id, S_CLIENT_ID);
-	LOG("Response message id: " << messageId);
+	DEBUG("Response message id: " << messageId);
+#endif
 
 	LOG("Message sent!");
 }
@@ -742,6 +745,7 @@ string Client::recvMessageContentChunkDec(size_t available_bytes, const Symmetri
 
 	//If we can read 1 chunk, at least
 	if (available_bytes > S_CIPHER_CHUNK_SIZE) {
+		DEBUG("Receiving message content chunk (" << S_CIPHER_CHUNK_SIZE << "bytes)...");
 		auto content = recvNextPayload(S_CIPHER_CHUNK_SIZE);
 		msg_bytes_read = S_CIPHER_CHUNK_SIZE;
 		result_bytes_read = S_CIPHER_CHUNK_SIZE;
@@ -750,6 +754,7 @@ string Client::recvMessageContentChunkDec(size_t available_bytes, const Symmetri
 	}
 	//Else, we read the amount of bytes left
 	else {
+		DEBUG("Receiving message content chunk (" << available_bytes << "bytes)...");
 		auto content = recvNextPayload(available_bytes);
 		msg_bytes_read = available_bytes;
 		result_bytes_read = available_bytes;
@@ -758,6 +763,7 @@ string Client::recvMessageContentChunkDec(size_t available_bytes, const Symmetri
 	}
 
 	//Decrypt cipher with sender's symm key
+	DEBUG("Decrypting chunk...");
 	AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
 	string plain = aeswrapper.decrypt((const char*)msg_content, msg_bytes_read);
 

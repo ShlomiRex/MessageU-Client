@@ -299,14 +299,15 @@ void MessageU::pullMessagesChoice(Client& client)
 				RSAPrivateWrapper rsaPrivWrapper(privkey);
 				string plain_symmKey = rsaPrivWrapper.decrypt(symmkey_cipher);
 				DEBUG("Decrypt success! Plain text is " << plain_symmKey.size() << " bytes.");
+
+				//Convert to array
+				SymmetricKey symmKey;
+				str_to_symmKey(plain_symmKey, symmKey);
+
 #ifdef DEBUGGING
 				DEBUG("Decrypted private key:");
-				hexify((const unsigned char*)plain_symmKey.c_str(), plain_symmKey.size());
+				hexify(symmKey, S_SYMMETRIC_KEY);
 #endif
-				
-				//Cast message content to symm key
-				//SymmetricKey symmkey;
-				//memcpy(symmkey, plain.c_str(), S_SYMMETRIC_KEY); //TODO: I know msg.msgContent is greater than S_SYMMETRIC_KEY, we need to send correct cipher, not "Super Secret"
 
 				//Find user with sender's client id
 				int index = findUser(msg.sender.client_id);
@@ -315,9 +316,6 @@ void MessageU::pullMessagesChoice(Client& client)
 				}
 
 				//Set symmetric key of the sender
-				//users.at(index).setSymmKey(symmkey);
-				SymmetricKey symmKey;
-				str_to_symmKey(plain_symmKey, symmKey);
 				users.at(index).setSymmKey(symmKey);
 
 				//Free content pointer

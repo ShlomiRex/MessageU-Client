@@ -1,7 +1,5 @@
 ﻿#include "Client.h"
-#include <boost/filesystem/operations.hpp>
 #include "Debug.h"
-#include "AsymmetricCrypto.h"
 #include "ProtocolDefenitions.h"
 #include "Menu.h"
 #include "MessageU_User.h"
@@ -82,7 +80,7 @@ void RSA_BASE64_TEST() {
 
 int main()
 {
-	RSA_BASE64_TEST();
+	//RSA_BASE64_TEST();
 	
 	string ip, port;
 	FileManager::readServer(ip, port);

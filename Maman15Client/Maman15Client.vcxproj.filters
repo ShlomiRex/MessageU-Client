@@ -78,12 +78,6 @@
     <ClCompile Include="MessageRequest.cpp">
       <Filter>Source Files\Client</Filter>
     </ClCompile>
-    <ClCompile Include="AsymmetricCrypto.cpp">
-      <Filter>Source Files\Crypto</Filter>
-    </ClCompile>
-    <ClCompile Include="SymmetricCrypto.cpp">
-      <Filter>Source Files\Crypto</Filter>
-    </ClCompile>
     <ClCompile Include="Menu.cpp">
       <Filter>Source Files\Menu</Filter>
     </ClCompile>
@@ -130,12 +124,6 @@
     </ClInclude>
     <ClInclude Include="Debug.h">
       <Filter>Header Files\Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="AsymmetricCrypto.h">
-      <Filter>Header Files\Crypto</Filter>
-    </ClInclude>
-    <ClInclude Include="SymmetricCrypto.h">
-      <Filter>Header Files\Crypto</Filter>
     </ClInclude>
     <ClInclude Include="Menu.h">
       <Filter>Header Files\Menu</Filter>
