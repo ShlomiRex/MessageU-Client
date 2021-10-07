@@ -1,4 +1,7 @@
-#pragma once
+
+#ifndef MESSAGEU_CLIENT_BUFFERUTILS_H
+#define MESSAGEU_CLIENT_BUFFERUTILS_H
+
 #include <cstdint>
 #include <cstring>
 #include <exception>
@@ -57,3 +60,6 @@ public:
 	void read(size_t size, void* bufferToWriteTo, size_t bufferToWriteToSize);
 	size_t getOffset();
 };
+
+#endif //MESSAGEU_CLIENT_BUFFERUTILS_H
+

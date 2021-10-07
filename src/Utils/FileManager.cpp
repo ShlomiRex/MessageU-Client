@@ -23,7 +23,7 @@ void FileManager::getSavedClientId(ClientId buffer) {
 
 	string hash = boost::algorithm::unhex(line2);
 	if (hash.size() != S_CLIENT_ID) {
-		throw exception("Couldn't properly read client id from the file. (Hex size is not 16)");
+		throw "Couldn't properly read client id from the file. (Hex size is not 16)";
 	}
 
 	for (size_t i = 0; i < S_CLIENT_ID; i++) {
