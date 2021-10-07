@@ -1,8 +1,8 @@
 #pragma once
 #include <cstdint>
-#include "BufferUtils.h"
+#include "Utils/BufferUtils.h"
 #include "ProtocolDefenitions.h"
-#include "Debug.h"
+#include "Utils/Debug.h"
 
 //using namespace std; //bad practice
 //using namespace MessageUProtocol; //bad practice

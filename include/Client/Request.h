@@ -1,10 +1,10 @@
 #pragma once
 
 #include <iostream>
-#include "BufferUtils.h"
+#include "Utils/BufferUtils.h"
 #include "ProtocolDefenitions.h"
-#include "Utils.h"
-#include "Debug.h"
+#include "Utils/Utils.h"
+#include "Utils/Debug.h"
 #include "MessageRequest.h"
 
 class Request {

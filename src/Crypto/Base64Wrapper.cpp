@@ -1,4 +1,4 @@
-#include "Base64Wrapper.h"
+#include "Crypto/Base64Wrapper.h"
 
 
 std::string Base64Wrapper::encode(const std::string& str)

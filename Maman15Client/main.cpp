@@ -1,11 +1,11 @@
-﻿#include "Client.h"
+﻿#include "Client/Client.h"
 #include <boost/filesystem/operations.hpp>
-#include "Debug.h"
+#include "Utils/Debug.h"
 #include "AsymmetricCrypto.h"
 #include "ProtocolDefenitions.h"
-#include "Menu.h"
-#include "MessageU_User.h"
-#include "MessageU.h"
+#include "Menu/Menu.h"
+#include "MessageU/MessageU_User.h"
+#include "MessageU/MessageU.h"
 
 #define DEBUG_PREFIX "[main] "
 

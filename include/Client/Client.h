@@ -13,20 +13,20 @@
 #include <string>
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
-#include "Base64Wrapper.h"
+#include "Crypto/Base64Wrapper.h"
 #include <iomanip>
-#include "BufferUtils.h"
+#include "Utils/BufferUtils.h"
 #include "ProtocolDefenitions.h"
 #include "Response.h"
 #include "Request.h"
-#include "Utils.h"
+#include "Utils/Utils.h"
 #include <algorithm>
-#include "FileManager.h"
+#include "Utils/FileManager.h"
 #include "MessageRequest.h"
-#include "Debug.h"
-#include "RSAWrapper.h"
-#include "AESWrapper.h"
-#include "MessageU_User.h"
+#include "Utils/Debug.h"
+#include "Crypto/RSAWrapper.h"
+#include "Crypto/AESWrapper.h"
+#include "MessageU/MessageU_User.h"
 #include <fstream>
 #pragma comment(lib, "Ws2_32.lib")
 

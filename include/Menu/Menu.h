@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Debug.h"
+#include "Utils/Debug.h"
 #include "ProtocolDefenitions.h"
 #include <vector>
 #include <iostream>
 #include <string>
 #include <boost/algorithm/hex.hpp> //to read hex from input
-#include "Utils.h"
-#include "MessageU_User.h"
-#include "BufferUtils.h"
+#include "Utils/Utils.h"
+#include "MessageU/MessageU_User.h"
+#include "Utils/BufferUtils.h"
 #include <boost/filesystem.hpp>
 
 #define SHOW_PUBKEY_MAX_CHARACTERS		16U

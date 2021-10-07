@@ -2,8 +2,8 @@
 
 #include "ProtocolDefenitions.h"
 #include "MessageU_User.h"
-#include "Menu.h"
-#include "Client.h"
+#include "Menu/Menu.h"
+#include "Client/Client.h"
 
 //TODO: When implimented send file, client version is 2!
 //TODO: Else, when send file is not implimented, client version is 1!

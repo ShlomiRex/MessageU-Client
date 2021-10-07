@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ProtocolDefenitions.h"
-#include "BufferUtils.h"
+#include "Utils/BufferUtils.h"
 #include <iostream>
-#include "Utils.h"
-#include "Debug.h"
+#include "Utils/Utils.h"
+#include "Utils/Debug.h"
 
 //using namespace MessageUProtocol; //bad practice
 
