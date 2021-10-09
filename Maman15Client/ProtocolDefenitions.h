@@ -11,7 +11,7 @@ namespace MessageUProtocol {
 #define S_RESPONSE_HEADER	7U				//Size of response header
 
 #define S_PUBLIC_KEY		160U			//Public key field size
-#define S_PRIVATE_KEY		160U	//TODO: PRIVATE KEY SIZE IS NOT 160. IDK WHY YOU SAY IT'S 160 BUTS ITS 633 OR 632.		//key pair with public key for asymmetric encryption, decryption
+#define S_PRIVATE_KEY		160U			//Private key
 #define S_SYMMETRIC_KEY		16U				//symmetric key length (in bytes) - AES-CBC encryption, decryption
 #define S_ASYMMETRIC_KEY	128U			//asymmetric key length (in bytes) - RSA encryption
 

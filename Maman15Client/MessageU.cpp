@@ -35,7 +35,6 @@ void MessageU::readInfoFile() {
 			me.setUsername(myUsername);
 		}
 
-
 		//Read private key
 		string privateKeyFromFile = FileManager::getSavedPrivateKey();
 
@@ -148,6 +147,8 @@ void MessageU::start()
 
 		cout << "\n\n\n";
 	}
+
+	LOG("Exiting...");
 }
 
 void MessageU::registerChoice(Client& client)

@@ -562,19 +562,24 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 
 				//Decrypt
 				DEBUG("Decrypting file(" << file_cipher.size() << " bytes)...");
-				AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
-				string file_plain = aeswrapper.decrypt((const char*)file_cipher.c_str(), file_cipher.size());
-				DEBUG("Successfully decrypted file! Size: " << file_plain.size());
+				try {
+					AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
+					string file_plain = aeswrapper.decrypt((const char*)file_cipher.c_str(), file_cipher.size());
+					DEBUG("Successfully decrypted file! Size: " << file_plain.size());
 
-				//Write to file all the file
-				temp_file.write(file_plain.c_str(), file_plain.size());
-				temp_file.flush();
-				temp_file.close();
+					//Write to file all the file
+					temp_file.write(file_plain.c_str(), file_plain.size());
+					temp_file.flush();
+					temp_file.close();
 
-				DEBUG("Done! File saved!");
+					DEBUG("Done! File saved!");
 
-				// As per PDF, show saved file location
-				cout << "File saved to: " << file_abs_path << endl;
+					// As per PDF, show saved file location
+					cout << "File saved to: " << file_abs_path << endl;
+				}
+				catch (...) {
+					cout << "Could not decrypt the file!" << endl;
+				}
 			}
 			else {
 				LOG("ERROR: Message type: " << (int)msgResponse.msgType << " is not recognized.");

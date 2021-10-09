@@ -61,7 +61,13 @@ string FileManager::getSavedPrivateKey() {
 
 void FileManager::readServer(string& result_ip, string& result_port) {
 	DEBUG("Reading from " << FILE_SERVER);
+
 	ifstream server_info(FILE_SERVER);
+	if (!server_info.is_open()) {
+		cerr << "The file: " << FILE_SERVER << " is not found!";
+		exit(-1);
+	}
+
 	char buff[S_FILE_SERVER] = { 0 };
 	server_info.read(buff, S_FILE_SERVER);
 	string str_buff = buff;

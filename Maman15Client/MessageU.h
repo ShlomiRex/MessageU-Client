@@ -5,8 +5,6 @@
 #include "Menu.h"
 #include "Client.h"
 
-//TODO: When implimented send file, client version is 2!
-//TODO: Else, when send file is not implimented, client version is 1!
 #define CLIENT_VERSION 2
 
 //Small class extension of MessageU_User

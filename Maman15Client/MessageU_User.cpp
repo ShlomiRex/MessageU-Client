@@ -6,7 +6,6 @@ using namespace MessageUProtocol;
 MessageU_User::MessageU_User()
 {
 	memset(client_id, 0, S_CLIENT_ID);
-	//memset(username, 0, S_USERNAME);
 	memset(privkey, 0, S_PRIVATE_KEY);
 	memset(pubkey, 0, S_PUBLIC_KEY);
 	memset(symmkey, 0, S_SYMMETRIC_KEY);
