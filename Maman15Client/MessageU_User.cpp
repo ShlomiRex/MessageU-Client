@@ -6,7 +6,6 @@ using namespace MessageUProtocol;
 MessageU_User::MessageU_User()
 {
 	memset(client_id, 0, S_CLIENT_ID);
-	memset(privkey, 0, S_PRIVATE_KEY);
 	memset(pubkey, 0, S_PUBLIC_KEY);
 	memset(symmkey, 0, S_SYMMETRIC_KEY);
 }
@@ -21,15 +20,14 @@ const std::string MessageU_User::getUsername() const
 	return username;
 }
 
-
 void MessageU_User::getPublicKey(MessageUProtocol::PublicKey& result) const
 {
 	memcpy(result, pubkey, S_PUBLIC_KEY);
 }
 
-void MessageU_User::getPrivateKey(MessageUProtocol::PrivateKey& result) const
+const string MessageU_User::getPrivateKey() const
 {
-	memcpy(result, privkey, S_PRIVATE_KEY);
+	return privkey;
 }
 
 void MessageU_User::getSymmetricKey(MessageUProtocol::SymmetricKey& result) const
@@ -110,9 +108,9 @@ void MessageU_User::setPublicKey(const MessageUProtocol::PublicKey& other)
 }
 
 
-void MessageU_User::setPrivateKey(const MessageUProtocol::PrivateKey& other)
+void MessageU_User::setPrivateKey(const string& other)
 {
-	memcpy(privkey, other, S_PRIVATE_KEY); //Here, we still don't know the public ip of each client. But it's ok, we cna deal with it later.
+	privkey = other;
 }
 
 

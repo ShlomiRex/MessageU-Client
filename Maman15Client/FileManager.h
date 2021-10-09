@@ -10,9 +10,6 @@
 #include "BufferUtils.h"
 #include "Utils.h"
 
-//using namespace std;
-//using namespace MessageUProtocol;
-
 class FileManager
 {
 public:

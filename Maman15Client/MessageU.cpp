@@ -37,12 +37,8 @@ void MessageU::readInfoFile() {
 
 		//Read private key
 		string privateKeyFromFile = FileManager::getSavedPrivateKey();
-
 		string privkey_str = Base64Wrapper::decode(privateKeyFromFile);
-
-		PrivateKey privKey = { 0 };
-		str_to_pubKey(privkey_str, privKey);
-		me.setPrivateKey(privKey);
+		me.setPrivateKey(privkey_str);
 
 		me.setRegistered();
 	}
@@ -376,6 +372,7 @@ void MessageU::sendSymmKeyChoice(Client& client)
 }
 
 void MessageU::aquirePublicKey(Client& client, MessageU_User& destUser) {
+	DEBUG("Getting public key...");
 	ClientId myClientId;
 	me.getClientId(myClientId);
 
@@ -392,6 +389,7 @@ void MessageU::aquirePublicKey(Client& client, MessageU_User& destUser) {
 		throw UserNotFound();
 	}
 	users.at(index).setPublicKey(destPubKey);
+	LOG("Got public key!");
 }
 
 void MessageU::sendFileChoice(Client& client)

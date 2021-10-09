@@ -62,7 +62,6 @@ namespace MessageUProtocol {
 	typedef uint32_t PayloadSize;
 	typedef unsigned char Username[S_USERNAME];
 	typedef unsigned char PublicKey[S_PUBLIC_KEY];
-	typedef unsigned char PrivateKey[S_PRIVATE_KEY];
 
 	//Message (Request + Response) header fields
 	typedef uint8_t MessageType;

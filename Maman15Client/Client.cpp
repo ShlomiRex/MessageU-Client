@@ -502,17 +502,23 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				while (msg_bytes_left > 0) {
 					//Read chunk
 					char buffer[S_PACKET_SIZE] = { 0 };
-					size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
+					size_t bytes_recv = 0;
+
+					//We may get 2 messages in a row. If that happens, we want to receive exact amount of payload of message 1, and not receive 1024 bytes of msg1 and msg2.
+					if (msg_bytes_left < S_PACKET_SIZE) {
+						bytes_recv = this->socket->receive(boost::asio::buffer(buffer, msg_bytes_left));
+					}
+					else {
+						bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
+					}
+
 					string chunk(buffer, bytes_recv); // Convert to string
 
 					//Append
 					message_cipher += chunk;
 
-					pSize -= bytes_recv; //Decrement total payload size left
-					msg_bytes_left -= bytes_recv; //Decrement message content size left
-				}
-				if (pSize != 0) {
-					throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
+					pSize -= bytes_recv;
+					msg_bytes_left -= bytes_recv;
 				}
 				if (msg_bytes_left != 0) {
 					throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
@@ -606,6 +612,11 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 			//Add to pulled messages
 			messages_pulled->push_back(msgResponse);
 		}
+		
+		if (pSize != 0) {
+			throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
+		}
+
 		LOG("Finished receiving messages. Messages read: " << messages_pulled->size());
 		return messages_pulled;
 	}
