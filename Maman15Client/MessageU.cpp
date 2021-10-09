@@ -147,8 +147,6 @@ void MessageU::start()
 
 		cout << "\n\n\n";
 	}
-
-	LOG("Exiting...");
 }
 
 void MessageU::registerChoice(Client& client)
@@ -309,7 +307,7 @@ void MessageU::pullMessagesChoice(Client& client)
 				str_to_symmKey(plain_symmKey, symmKey);
 
 #ifdef DEBUGGING
-				DEBUG("Decrypted private key:");
+				DEBUG("Decrypted symmetric key:");
 				hexify(symmKey, S_SYMMETRIC_KEY);
 #endif
 

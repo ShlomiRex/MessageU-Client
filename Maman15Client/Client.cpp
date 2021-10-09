@@ -140,6 +140,9 @@ ResponseHeader Client::recvResponseHeader(ResponseCodes requiredCode) {
 	DEBUG("Received response header");
 
 	ResponseHeader header(payload, S_RESPONSE_HEADER);
+	DEBUG("Payload size: " << header.getPayloadSize());
+	DEBUG("Response code: " << header.getCode());
+	DEBUG("Response version: " << (uint8_t)(header.getVersion()));
 
 	//It's fine to free memory, header copied.
 	delete[] payload;
@@ -274,9 +277,11 @@ User Client::recvNextUserInList() {
 }
 
 void Client::recvClientId(ClientId& result) const {
+	DEBUG("Receiving client id...");
 	auto payload = recvNextPayload(S_CLIENT_ID);
 	memcpy(result, payload, S_CLIENT_ID);
 	delete[] payload;
+	DEBUG("Client ID recevied");
 }
 
 void Client::recvUsername(Username& result) const {
@@ -286,32 +291,40 @@ void Client::recvUsername(Username& result) const {
 }
 
 void Client::recvPublicKey(PublicKey& result) const {
+	DEBUG("Receiving public key...");
 	auto payload = recvNextPayload(S_PUBLIC_KEY);
 	memcpy(result, payload, S_PUBLIC_KEY);
 	delete[] payload;
+	DEBUG("Recevied public key");
 }
 
 MessageId Client::recvMessageId() {
+	DEBUG("Receiving message id...");
 	auto payload = recvNextPayload(sizeof(MessageId));
 	BufferReader reader(payload, sizeof(MessageId));
 	MessageId result = reader.read4bytes();
 	delete[] payload;
+	DEBUG("Recevied message id");
 	return result;
 }
 
 MessageType Client::recvMessageType() {
+	DEBUG("Receving message type...");
 	auto payload = recvNextPayload(sizeof(MessageType));
 	BufferReader reader(payload, sizeof(MessageType));
 	MessageType msgType = reader.read1byte();
 	delete[] payload;
+	DEBUG("Recevied message type");
 	return msgType;
 }
 
 MessageSize Client::recvMessageSize() {
+	DEBUG("Receving message size...");
 	auto payload = recvNextPayload(sizeof(MessageSize));
 	BufferReader reader(payload, sizeof(MessageSize));
 	MessageSize msgSize = reader.read4bytes();
 	delete[] payload;
+	DEBUG("Recevied message size");
 	return msgSize;
 }
 
@@ -488,8 +501,9 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				size_t msg_bytes_left = msgResponse.msgSize;
 				while (msg_bytes_left > 0) {
 					//Read chunk
-					string chunk;
-					size_t bytes_recv = this->socket->receive(boost::asio::buffer(chunk, S_PACKET_SIZE));
+					char buffer[S_PACKET_SIZE] = { 0 };
+					size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
+					string chunk(buffer, bytes_recv); // Convert to string
 
 					//Append
 					message_cipher += chunk;
