@@ -533,11 +533,10 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				pSize -= msg_bytes_left;
 				msg_bytes_left -= msg_bytes_left;
 
-				//Create temporary file
-
-				//TODO: Create in %TMP%
-				boost::filesystem::path temp_path = boost::filesystem::unique_path();
+				//Create temporary file in temporary directory
+				boost::filesystem::path temp_path = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
 				boost::filesystem::ofstream temp_file;
+
 				temp_file.open(temp_path, std::ios::binary);
 
 				auto file_abs_path = boost::filesystem::system_complete(temp_path);
@@ -547,8 +546,6 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				DEBUG("Decrypting file(" << file_cipher.size() << " bytes)...");
 				try {
 					AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
-					//TODO: [size] = 112016 crash
-					//TODO: [size] = 112640 success
 					string file_plain = aeswrapper.decrypt((const char*)file_cipher.c_str(), file_cipher.size());
 					DEBUG("Successfully decrypted file! Size: " << file_plain.size());
 
@@ -562,7 +559,8 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 					// As per PDF, show saved file location
 					cout << "File saved to: " << file_abs_path << endl;
 				}
-				catch (...) {
+				catch (exception& e) {
+					LOG(e.what());
 					cout << "Could not decrypt the file!" << endl;
 				}
 			}
