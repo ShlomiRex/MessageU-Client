@@ -3,6 +3,8 @@
 #include <cstring>
 #include <exception>
 #include <string>
+#include <stdexcept>
+
 
 //Little endian buffer writer
 class BufferWriter

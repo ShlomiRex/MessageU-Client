@@ -43,7 +43,7 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers)
 				LOG("\tPublic key: \t\tNot aquired");
 			}
 			else {
-                string pubkey_str(pubkey, S_PUBLIC_KEY);
+                string pubkey_str((char*)pubkey, S_PUBLIC_KEY);
                 pubkey_str = pubkey_str.substr(0, SHOW_PUBKEY_MAX_CHARACTERS);
 				pubkey_str = hexify_str((unsigned char*)pubkey_str.c_str(), pubkey_str.size());
 				LOG("\tPublic key: \t\t" << pubkey_str << "... (" << S_PUBLIC_KEY << " bytes)");
@@ -240,7 +240,7 @@ const MessageU_User Menu::chooseUser(const vector<MessageU_User>* availableUsers
 						ClientId clientId;
 						x.getClientId(clientId);
 
-                        string client_id_str(clientId, S_CLIENT_ID);
+                        string client_id_str((char*)clientId, S_CLIENT_ID);
 						if (strncmp(client_id_str.c_str(), unhex.c_str(), S_CLIENT_ID) == 0) {
 							return x;
 						}

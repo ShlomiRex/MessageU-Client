@@ -387,241 +387,237 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 	sendRequest();
 
 	//Get waiting messages
-	try {
-		ResponseHeader header = recvResponseHeader(ResponseCodes::pullWaitingMessages);
-		PayloadSize payloadSize = header.getPayloadSize();
-		PayloadSize pSize = payloadSize;
-		size_t message_num = 0;
+	ResponseHeader header = recvResponseHeader(ResponseCodes::pullWaitingMessages);
+	PayloadSize payloadSize = header.getPayloadSize();
+	PayloadSize pSize = payloadSize;
+	size_t message_num = 0;
 		
-		if (payloadSize == 0) {
-			LOG("No messages waiting for you, sir!");
-			return nullptr;
+	if (payloadSize == 0) {
+		LOG("No messages waiting for you, sir!");
+		return nullptr;
+	}
+
+	//IMPORTANT: We don't add message of type 'file' or 'text', only 'symm key' type. This is due to big files and big messages.
+	vector<MessageResponse>* messages_pulled = new vector<MessageResponse>();
+
+	//While we have payload to read
+	while (pSize > 0) {
+		//Get single message (response from server)
+		//Each receive, we substract amount of bytes left to read.
+
+		message_num += 1;
+
+		//Create message response so we can save it and use it later
+		MessageResponse msgResponse;
+		//Receive header, discard from stack after that, msgResponse encapsulates the data.
+		{
+			ClientId msg_clientId;
+			recvClientId(msg_clientId);
+			pSize -= sizeof(ClientId);
+
+			MessageId msg_msgId = recvMessageId();
+			pSize -= sizeof(MessageId);
+
+			MessageType msg_msgType = recvMessageType();
+			pSize -= sizeof(MessageType);
+
+			MessageSize msg_msgSize = recvMessageSize();
+			pSize -= sizeof(MessageSize);
+
+			//Set response
+			memcpy(msgResponse.sender.client_id, msg_clientId, S_CLIENT_ID);
+			memset(msgResponse.sender.username, 0, S_USERNAME);
+			msgResponse.msgId = msg_msgId;
+			msgResponse.msgType = msg_msgType;
+			msgResponse.msgSize = msg_msgSize;
+			msgResponse.msgContent = nullptr;
 		}
 
-		//IMPORTANT: We don't add message of type 'file' or 'text', only 'symm key' type. This is due to big files and big messages.
-		vector<MessageResponse>* messages_pulled = new vector<MessageResponse>();
 
-		//While we have payload to read
-		while (pSize > 0) {
-			//Get single message (response from server)
-			//Each receive, we substract amount of bytes left to read.
+		//Get sender
+		MessageU_User sender;
+		for (const auto& x : users) {
+			ClientId xClientId;
+			x.getClientId(xClientId);
 
-			message_num += 1;
-
-			//Create message response so we can save it and use it later
-			MessageResponse msgResponse;
-			//Receive header, discard from stack after that, msgResponse encapsulates the data.
-			{
-				ClientId msg_clientId;
-				recvClientId(msg_clientId);
-				pSize -= sizeof(ClientId);
-
-				MessageId msg_msgId = recvMessageId();
-				pSize -= sizeof(MessageId);
-
-				MessageType msg_msgType = recvMessageType();
-				pSize -= sizeof(MessageType);
-
-				MessageSize msg_msgSize = recvMessageSize();
-				pSize -= sizeof(MessageSize);
-
-				//Set response
-				memcpy(msgResponse.sender.client_id, msg_clientId, S_CLIENT_ID);
-				memset(msgResponse.sender.username, 0, S_USERNAME);
-				msgResponse.msgId = msg_msgId;
-				msgResponse.msgType = msg_msgType;
-				msgResponse.msgSize = msg_msgSize;
-				msgResponse.msgContent = nullptr;
+			bool same = buffer_compare(msgResponse.sender.client_id, xClientId, S_CLIENT_ID);
+			if (same) {
+				sender = x;
+				break;
 			}
-
-
-			//Get sender
-			MessageU_User sender;
-			for (const auto& x : users) {
-				ClientId xClientId;
-				x.getClientId(xClientId);
-
-				bool same = buffer_compare(msgResponse.sender.client_id, xClientId, S_CLIENT_ID);
-				if (same) {
-					sender = x;
-					break;
-				}
-			}
-			//Set response username
-			memcpy(msgResponse.sender.username, sender.getUsername().c_str(), S_USERNAME);
-			//Check username not null (that we found the sender from users vector)
-			if (is_zero_filled(msgResponse.sender.username, S_USERNAME)) {
-				LOG("ERROR: Couldn't map username to client id: ");
-				hexify((const unsigned char*)msgResponse.sender.client_id, S_CLIENT_ID);
-				throw exception("Couldn't convert client id to username, in order to display the message.");
-			}
-			//Get sender symm key
-			SymmetricKey senderSymmKey;
-			sender.getSymmetricKey(senderSymmKey);
+		}
+		//Set response username
+		memcpy(msgResponse.sender.username, sender.getUsername().c_str(), S_USERNAME);
+		//Check username not null (that we found the sender from users vector)
+		if (is_zero_filled(msgResponse.sender.username, S_USERNAME)) {
+			LOG("ERROR: Couldn't map username to client id: ");
+			hexify((const unsigned char*)msgResponse.sender.client_id, S_CLIENT_ID);
+			throw exception("Couldn't convert client id to username, in order to display the message.");
+		}
+		//Get sender symm key
+		SymmetricKey senderSymmKey;
+		sender.getSymmetricKey(senderSymmKey);
 
 
 
-			//Print message
-			cout << endl;
-			cout << "From: " << msgResponse.sender.username << endl;
-			cout << "Content: " << endl;
+		//Print message
+		cout << endl;
+		cout << "From: " << msgResponse.sender.username << endl;
+		cout << "Content: " << endl;
 
-			//cast to enum
-			MessageTypes _msg_msgType_enum = MessageTypes(msgResponse.msgType); 
+		//cast to enum
+		MessageTypes _msg_msgType_enum = MessageTypes(msgResponse.msgType); 
 
-			//Check type of message, and display diffirent contents based on that.
-			if (_msg_msgType_enum == MessageTypes::reqSymmetricKey) {
-				DEBUG("Handling message type: 'request symmetric key'...");
-				cout << "Request for symmetric key" << endl;
-			}
-			else if (_msg_msgType_enum == MessageTypes::sendSymmetricKey) {
-				DEBUG("Handling message type: 'send symmetric key'...");
+		//Check type of message, and display diffirent contents based on that.
+		if (_msg_msgType_enum == MessageTypes::reqSymmetricKey) {
+			DEBUG("Handling message type: 'request symmetric key'...");
+			cout << "Request for symmetric key" << endl;
+		}
+		else if (_msg_msgType_enum == MessageTypes::sendSymmetricKey) {
+			DEBUG("Handling message type: 'send symmetric key'...");
 				
-				//Get symmetric key (message content) from server
-				const unsigned char* msg_msgContent = recvNextPayload(msgResponse.msgSize);
-				pSize -= msgResponse.msgSize;
+			//Get symmetric key (message content) from server
+			const unsigned char* msg_msgContent = recvNextPayload(msgResponse.msgSize);
+			pSize -= msgResponse.msgSize;
 
-				cout << "Symmetric key received!" << endl;
+			cout << "Symmetric key received!" << endl;
 
-				msgResponse.msgContent = msg_msgContent; //this is pointer
+			msgResponse.msgContent = msg_msgContent; //this is pointer
+		}
+		else if (_msg_msgType_enum == MessageTypes::sendMessage) {
+			DEBUG("Handling message type: 'send message'...");
+
+            if (is_zero_filled(senderSymmKey, S_SYMMETRIC_KEY)) {
+				cout << "Can't decrypt message! Symmetric key is empty." << endl;
+				cout << "----<EOM>-----\n" << endl;
+				break;
 			}
-			else if (_msg_msgType_enum == MessageTypes::sendMessage) {
-				DEBUG("Handling message type: 'send message'...");
 
-                if (is_zero_filled(senderSymmKey, S_SYMMETRIC_KEY)) {
-					cout << "Can't decrypt message! Symmetric key is empty." << endl;
-					cout << "----<EOM>-----\n" << endl;
-					break;
+			//Read entire message by chunks
+			string message_cipher;
+
+			size_t msg_bytes_left = msgResponse.msgSize;
+			while (msg_bytes_left > 0) {
+				//Read chunk
+				char buffer[S_PACKET_SIZE] = { 0 };
+				size_t bytes_recv = 0;
+
+				//We may get 2 messages in a row. If that happens, we want to receive exact amount of payload of message 1, and not receive 1024 bytes of msg1 and msg2.
+				if (msg_bytes_left < S_PACKET_SIZE) {
+					bytes_recv = this->socket->receive(boost::asio::buffer(buffer, msg_bytes_left));
+				}
+				else {
+					bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
 				}
 
-				//Read entire message by chunks
-				string message_cipher;
+				string chunk(buffer, bytes_recv); // Convert to string
 
-				size_t msg_bytes_left = msgResponse.msgSize;
-				while (msg_bytes_left > 0) {
-					//Read chunk
-					char buffer[S_PACKET_SIZE] = { 0 };
-					size_t bytes_recv = 0;
+				//Append
+				message_cipher += chunk;
 
-					//We may get 2 messages in a row. If that happens, we want to receive exact amount of payload of message 1, and not receive 1024 bytes of msg1 and msg2.
-					if (msg_bytes_left < S_PACKET_SIZE) {
-						bytes_recv = this->socket->receive(boost::asio::buffer(buffer, msg_bytes_left));
-					}
-					else {
-						bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
-					}
-
-					string chunk(buffer, bytes_recv); // Convert to string
-
-					//Append
-					message_cipher += chunk;
-
-					pSize -= bytes_recv;
-					msg_bytes_left -= bytes_recv;
-				}
-				if (msg_bytes_left != 0) {
-					throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
-				}
-
-				//Got all the message
-				//Decrypt message
-				DEBUG("Decrypting message (" << message_cipher.size() << " bytes)...");
-				AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
-				string plain = aeswrapper.decrypt((const char*)message_cipher.c_str(), message_cipher.size());
-				DEBUG("Successfully decrypted! Plain size: " << plain.size());
-
-				//Print message, end with new line
-				cout << plain << endl;
+				pSize -= bytes_recv;
+				msg_bytes_left -= bytes_recv;
 			}
-			else if (_msg_msgType_enum == MessageTypes::sendFile) {
-				DEBUG("Handling message type: 'send file'...");
+			if (msg_bytes_left != 0) {
+				throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
+			}
 
-				// Check valid symm key (if non-zero)
-				if (is_zero_filled(senderSymmKey, S_SYMMETRIC_KEY)) {
-					cout << "Can't decrypt file! Symmetric key is empty." << endl;
-					cout << "----<EOM>-----\n" << endl;
-					break;
-				}
+			//Got all the message
+			//Decrypt message
+			DEBUG("Decrypting message (" << message_cipher.size() << " bytes)...");
+			AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
+			string plain = aeswrapper.decrypt((const char*)message_cipher.c_str(), message_cipher.size());
+			DEBUG("Successfully decrypted! Plain size: " << plain.size());
 
-				//Create temporary file
-				boost::filesystem::path temp_path = boost::filesystem::unique_path();
-				boost::filesystem::ofstream temp_file;
-				auto file_abs_path = boost::filesystem::system_complete(temp_path);
+			//Print message, end with new line
+			cout << plain << endl;
+		}
+		else if (_msg_msgType_enum == MessageTypes::sendFile) {
+			DEBUG("Handling message type: 'send file'...");
+
+			// Check valid symm key (if non-zero)
+			if (is_zero_filled(senderSymmKey, S_SYMMETRIC_KEY)) {
+				cout << "Can't decrypt file! Symmetric key is empty." << endl;
+				cout << "----<EOM>-----\n" << endl;
+				break;
+			}
+
+			//Create temporary file
+			boost::filesystem::path temp_path = boost::filesystem::unique_path();
+			boost::filesystem::ofstream temp_file;
+			auto file_abs_path = boost::filesystem::system_complete(temp_path);
 				
-				DEBUG("Saving file to: " << file_abs_path);
+			DEBUG("Saving file to: " << file_abs_path);
 
-				//Open with binary mode write mode
-				temp_file.open(temp_path, std::ios::binary);
+			//Open with binary mode write mode
+			temp_file.open(temp_path, std::ios::binary);
 
-				string file_cipher;
+			string file_cipher;
 
-				//Read file from server, chunk by chunk
-				size_t msg_bytes_left = msgResponse.msgSize;
-				while (msg_bytes_left > 0) {
-					DEBUG("Getting chunk...");
+			//Read file from server, chunk by chunk
+			size_t msg_bytes_left = msgResponse.msgSize;
+			while (msg_bytes_left > 0) {
+				DEBUG("Getting chunk...");
 					
-					//We read S_PACKET_SIZE but we may end up reading less. Thats why we cast buffer into string.
-					char buffer[S_PACKET_SIZE] = { 0 };
-					size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
-					string chunk(buffer, bytes_recv);
-					DEBUG("Got chunk, size: " << chunk.size());
+				//We read S_PACKET_SIZE but we may end up reading less. Thats why we cast buffer into string.
+				char buffer[S_PACKET_SIZE] = { 0 };
+				size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
+				string chunk(buffer, bytes_recv);
+				DEBUG("Got chunk, size: " << chunk.size());
 
-					file_cipher += chunk;
+				file_cipher += chunk;
 
-					pSize -= bytes_recv; //Decrement total payload size left
-					msg_bytes_left -= bytes_recv; //Decrement message content size left
-				}
-
-				if (pSize != 0) {
-					throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
-				}
-				if (msg_bytes_left != 0) {
-					throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
-				}
-
-				//Decrypt
-				DEBUG("Decrypting file(" << file_cipher.size() << " bytes)...");
-				try {
-					AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
-					string file_plain = aeswrapper.decrypt((const char*)file_cipher.c_str(), file_cipher.size());
-					DEBUG("Successfully decrypted file! Size: " << file_plain.size());
-
-					//Write to file all the file
-					temp_file.write(file_plain.c_str(), file_plain.size());
-					temp_file.flush();
-					temp_file.close();
-
-					DEBUG("Done! File saved!");
-
-					// As per PDF, show saved file location
-					cout << "File saved to: " << file_abs_path << endl;
-				}
-				catch (...) {
-					cout << "Could not decrypt the file!" << endl;
-				}
-			}
-			else {
-				LOG("ERROR: Message type: " << (int)msgResponse.msgType << " is not recognized.");
-				throw exception("Message type invalid.");
+				pSize -= bytes_recv; //Decrement total payload size left
+				msg_bytes_left -= bytes_recv; //Decrement message content size left
 			}
 
-			//Finish content
-			cout << "----<EOM>-----\n" << endl;
+			if (pSize != 0) {
+				throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
+			}
+			if (msg_bytes_left != 0) {
+				throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
+			}
 
-			//Add to pulled messages
-			messages_pulled->push_back(msgResponse);
+			//Decrypt
+			DEBUG("Decrypting file(" << file_cipher.size() << " bytes)...");
+			try {
+				AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
+				string file_plain = aeswrapper.decrypt((const char*)file_cipher.c_str(), file_cipher.size());
+				DEBUG("Successfully decrypted file! Size: " << file_plain.size());
+
+				//Write to file all the file
+				temp_file.write(file_plain.c_str(), file_plain.size());
+				temp_file.flush();
+				temp_file.close();
+
+				DEBUG("Done! File saved!");
+
+				// As per PDF, show saved file location
+				cout << "File saved to: " << file_abs_path << endl;
+			}
+			catch (...) {
+				cout << "Could not decrypt the file!" << endl;
+			}
 		}
+		else {
+			LOG("ERROR: Message type: " << (int)msgResponse.msgType << " is not recognized.");
+			throw exception("Message type invalid.");
+		}
+
+		//Finish content
+		cout << "----<EOM>-----\n" << endl;
+
+		//Add to pulled messages
+		messages_pulled->push_back(msgResponse);
+	}
 		
-		if (pSize != 0) {
-			throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
-		}
+	if (pSize != 0) {
+		throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
+	}
 
-		LOG("Finished receiving messages. Messages read: " << messages_pulled->size());
-		return messages_pulled;
-	}
-	catch (exception& e) {
-		LOG("ERROR: " << e.what());
-	}
+	LOG("Finished receiving messages. Messages read: " << messages_pulled->size());
+	return messages_pulled;
+
 
 	DEBUG("Pulled all messages.");
 }
@@ -645,7 +641,7 @@ void Client::sendSymKey(const ClientId& myClientId, const SymmetricKey& mySymmKe
 	msgHeader.messageType = (MessageType)MessageTypes::sendSymmetricKey; //Cast enum to its value
 	memcpy(msgHeader.dest_clientId, dest_clientId, S_CLIENT_ID);
 
-	string pubkey_str(dest_client_pubKey, S_PUBLIC_KEY);
+	string pubkey_str((char*)dest_client_pubKey, S_PUBLIC_KEY);
 
 	//Encrypt symm key
 	DEBUG("Encrypting symm key...");

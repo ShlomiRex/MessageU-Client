@@ -22,7 +22,7 @@ const unsigned char* BufferWriter::getBuffer() {
 
 void BufferWriter::write(const void* data, size_t size) {
     if (check_overflow(size)) {
-        throw exception("Buffer overflow");
+        throw overflow_error("Buffer overflow");
     }
 
     memcpy(buffer + offset, data, size);
@@ -36,7 +36,7 @@ size_t BufferWriter::getOffset() const
 
 void BufferWriter::write4bytes(uint32_t input) {
     if (check_overflow(4)) {
-        throw exception("Buffer is full. Can't append 4 bytes.");
+        throw overflow_error("Buffer is full. Can't append 4 bytes.");
     }
     unsigned int a = input & 0xFF;
     unsigned int b = (input >> 8) & 0xFF;
@@ -51,7 +51,7 @@ void BufferWriter::write4bytes(uint32_t input) {
 
 void BufferWriter::write2bytes(uint16_t input) {
     if (check_overflow(2)) {
-        throw exception("Buffer is full. Can't append 2 bytes.");
+        throw overflow_error("Buffer is full. Can't append 2 bytes.");
     }
 
     unsigned int a = input & 0xFF;
@@ -63,7 +63,7 @@ void BufferWriter::write2bytes(uint16_t input) {
 
 void BufferWriter::write1byte(uint8_t input) {
     if (check_overflow(1)) {
-        throw exception("Buffer is full. Can't append 1 bytes.");
+        throw overflow_error("Buffer is full. Can't append 1 bytes.");
     }
 
     unsigned int a = input & 0xFF;
@@ -72,9 +72,15 @@ void BufferWriter::write1byte(uint8_t input) {
 }
 
 bool BufferWriter::check_overflow(size_t bytesToWrite) const {
-    if ((offset + bytesToWrite) > bufferSize) {
+    if (offset > bufferSize || bytesToWrite > bufferSize)
         return true;
-    }
+
+    size_t tmp = offset + bytesToWrite;
+
+    //If overlap, it resets to 0 and adds diff. Therefor, it can never be equal, greater than min(val1, val2).
+    //Otherwise, it doesn't overflow, so we just check if tmp < bufferSize.
+    if (tmp < std::min(offset, bytesToWrite) || tmp > bufferSize)
+        return true;
 
     return false;
 }
@@ -83,7 +89,7 @@ void BufferWriter::writeVal(uint8_t val, size_t size) {
     if (check_overflow(size)) {
         string msg = "Buffer is full. Can't append " + size;
         msg += " bytes";
-        throw exception(msg.c_str());
+        throw overflow_error(msg.c_str());
     }
 
     memset(buffer + offset, val, size);
@@ -104,11 +110,11 @@ void BufferReader::read(size_t size, void* bufferToWriteTo, size_t bufferToWrite
     }
 
     if (size > bufferToWriteToSize) {
-        throw exception("Can't read more than buffer size.");
+        throw overflow_error("Can't read more than buffer size.");
     }
 
     if (check_overflow(size)) {
-        throw exception("Can't read - buffer offset is at the end.");
+        throw overflow_error("Can't read - buffer offset is at the end.");
     }
 
     memcpy(bufferToWriteTo, buffer + offset, size);
@@ -122,7 +128,7 @@ size_t BufferReader::getOffset() const
 
 uint32_t BufferReader::read4bytes() {
     if (check_overflow(4)) {
-        throw exception("Buffer is full. Can't read 4 bytes.");
+        throw overflow_error("Buffer is full. Can't read 4 bytes.");
     }
     uint32_t x = *(uint32_t*)(buffer + offset);
     offset += 4;
@@ -131,7 +137,7 @@ uint32_t BufferReader::read4bytes() {
 
 uint16_t BufferReader::read2bytes() {
     if (check_overflow(2)) {
-        throw exception("Buffer is full. Can't read 2 bytes.");
+        throw overflow_error("Buffer is full. Can't read 2 bytes.");
     }
 
     uint16_t x = *(uint16_t*)(buffer + offset);
@@ -150,18 +156,15 @@ uint8_t BufferReader::read1byte() {
 }
 
 bool BufferReader::check_overflow(size_t bytesToRead) const {
-    if (offset >= bufferSize || bytesToRead >= bufferSize)
+    if (offset > bufferSize || bytesToRead > bufferSize)
         return true;
 
-    if (offset < bytesToRead) {
+    size_t tmp = offset + bytesToRead;
 
-    } else {
-
-    }
-
-    if ((offset + bytesToRead) > bufferSize) {
+    //If overlap, it resets to 0 and adds diff. Therefor, it can never be equal, greater than min(val1, val2).
+    //Otherwise, it doesn't overflow, so we just check if tmp < bufferSize.
+    if (tmp < std::min(offset, bytesToRead) || tmp > bufferSize)
         return true;
-    }
 
     return false;
 }

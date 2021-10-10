@@ -269,54 +269,59 @@ void MessageU::pullMessagesChoice(Client& client)
 
 	ClientId myClientId;
 	me.getClientId(myClientId);
-	const vector<MessageResponse>* messages = client.pullMessages(myClientId, users);
+	try {
+		const vector<MessageResponse>* messages = client.pullMessages(myClientId, users);
 
-	DEBUG("Parsing messages...");
-	if (messages != nullptr) {
-		for (const auto& msg : *messages) {
-			MessageTypes _type = (MessageTypes)msg.msgType;
-			if (_type == MessageTypes::sendSymmetricKey) {
-				DEBUG("Found message of type 'sendSymmetricKey'");
+		DEBUG("Parsing messages...");
+		if (messages != nullptr) {
+			for (const auto& msg : *messages) {
+				MessageTypes _type = (MessageTypes)msg.msgType;
+				if (_type == MessageTypes::sendSymmetricKey) {
+					DEBUG("Found message of type 'sendSymmetricKey'");
 
-				string symmkey_cipher(msg.msgContent, msg.msgSize);
+					string symmkey_cipher((char*)msg.msgContent, msg.msgSize);
 
-				//Read and decode private key
-				DEBUG("Decoding my private key from info file...");
-				string saved_priv_key = FileManager::getSavedPrivateKey();
-				string privkey = Base64Wrapper::decode(saved_priv_key);
+					//Read and decode private key
+					DEBUG("Decoding my private key from info file...");
+					string saved_priv_key = FileManager::getSavedPrivateKey();
+					string privkey = Base64Wrapper::decode(saved_priv_key);
 
-				//Decrypt message
-				DEBUG("Decrypting message content (" << msg.msgSize << " bytes)...");
-				RSAPrivateWrapper rsaPrivWrapper(privkey);
-				string plain_symmKey = rsaPrivWrapper.decrypt(symmkey_cipher);
-				DEBUG("Decrypt success! Plain text is " << plain_symmKey.size() << " bytes.");
+					//Decrypt message
+					DEBUG("Decrypting message content (" << msg.msgSize << " bytes)...");
+					RSAPrivateWrapper rsaPrivWrapper(privkey);
+					string plain_symmKey = rsaPrivWrapper.decrypt(symmkey_cipher);
+					DEBUG("Decrypt success! Plain text is " << plain_symmKey.size() << " bytes.");
 
-				//Convert to array
-				SymmetricKey symmKey;
-				str_to_symmKey(plain_symmKey, symmKey);
+					//Convert to array
+					SymmetricKey symmKey;
+					str_to_symmKey(plain_symmKey, symmKey);
 
 #ifdef DEBUGGING
-				DEBUG("Decrypted symmetric key:");
-				hexify(symmKey, S_SYMMETRIC_KEY);
+					DEBUG("Decrypted symmetric key:");
+					hexify(symmKey, S_SYMMETRIC_KEY);
 #endif
 
-				//Find user with sender's client id
-				int index = findUser(msg.sender.client_id);
-				if (index < 0) {
-					throw UserNotFound();
+					//Find user with sender's client id
+					int index = findUser(msg.sender.client_id);
+					if (index < 0) {
+						throw UserNotFound();
+					}
+
+					//Set symmetric key of the sender
+					users.at(index).setSymmKey(symmKey);
+
+					//Free content pointer
+					delete[] msg.msgContent;
 				}
-
-				//Set symmetric key of the sender
-				users.at(index).setSymmKey(symmKey);
-
-				//Free content pointer
-				delete[] msg.msgContent;
 			}
+			//Free vector pointer
+			delete messages;
 		}
-		//Free vector pointer
-		delete messages;
+		DEBUG("Finished handling pull messages request.");
 	}
-	DEBUG("Finished handling pull messages request.");
+	catch (exception& e) {
+		LOG(e.what());
+	}
 }
 
 void MessageU::sendSymmKeyChoice(Client& client)
