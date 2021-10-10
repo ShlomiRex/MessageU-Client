@@ -468,7 +468,8 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 		//cast to enum
 		MessageTypes _msg_msgType_enum = MessageTypes(msgResponse.msgType); 
 
-		bool push_to_vec = true;
+		bool msg_read_success = true;
+		size_t msg_bytes_left = msgResponse.msgSize;
 
 		//Check type of message, and display diffirent contents based on that.
 		if (_msg_msgType_enum == MessageTypes::reqSymmetricKey) {
@@ -489,8 +490,6 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 		else if (_msg_msgType_enum == MessageTypes::sendMessage) {
 			DEBUG("Handling message type: 'send message'...");
 
-			size_t msg_bytes_left = msgResponse.msgSize;
-
             if (is_zero_filled(senderSymmKey, S_SYMMETRIC_KEY)) {
 				cout << "Can't decrypt message! Symmetric key is empty." << endl;
 
@@ -501,33 +500,10 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 			else {
 				//Read entire message by chunks
 				string message_cipher;
+				recvChunks(msg_bytes_left, message_cipher);
+				pSize -= msg_bytes_left;
+				msg_bytes_left -= msg_bytes_left;
 
-				while (msg_bytes_left > 0) {
-					//Read chunk
-					char buffer[S_PACKET_SIZE] = { 0 };
-					size_t bytes_recv = 0;
-
-					//We may get 2 messages in a row. If that happens, we want to receive exact amount of payload of message 1, and not receive 1024 bytes of msg1 and msg2.
-					if (msg_bytes_left < S_PACKET_SIZE) {
-						bytes_recv = this->socket->receive(boost::asio::buffer(buffer, msg_bytes_left));
-					}
-					else {
-						bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
-					}
-
-					string chunk(buffer, bytes_recv); // Convert to string
-
-					//Append
-					message_cipher += chunk;
-
-					pSize -= bytes_recv;
-					msg_bytes_left -= bytes_recv;
-				}
-				if (msg_bytes_left != 0) {
-					throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
-				}
-
-				//Got all the message
 				//Decrypt message
 				DEBUG("Decrypting message (" << message_cipher.size() << " bytes)...");
 				AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
@@ -541,8 +517,6 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 		else if (_msg_msgType_enum == MessageTypes::sendFile) {
 			DEBUG("Handling message type: 'send file'...");
 
-			size_t msg_bytes_left = msgResponse.msgSize;
-
 			// Check valid symm key (if non-zero)
 			if (is_zero_filled(senderSymmKey, S_SYMMETRIC_KEY)) {
 				cout << "Can't decrypt file! Symmetric key is empty." << endl;
@@ -550,49 +524,31 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 				// Pretend to read the message
 				recvNullSink(msg_bytes_left);
 				pSize -= msg_bytes_left;
+				msg_bytes_left -= msg_bytes_left;
 			}
 			else {
+				//Read entire message by chunks
+				string file_cipher;
+				recvChunks(msg_bytes_left, file_cipher);
+				pSize -= msg_bytes_left;
+				msg_bytes_left -= msg_bytes_left;
+
 				//Create temporary file
+
+				//TODO: Create in %TMP%
 				boost::filesystem::path temp_path = boost::filesystem::unique_path();
 				boost::filesystem::ofstream temp_file;
-				auto file_abs_path = boost::filesystem::system_complete(temp_path);
-
-				DEBUG("Saving file to: " << file_abs_path);
-
-				//Open with binary mode write mode
 				temp_file.open(temp_path, std::ios::binary);
 
-				string file_cipher;
-
-				//Read file from server, chunk by chunk
-				while (msg_bytes_left > 0) {
-					DEBUG("Getting chunk...");
-
-					//We read S_PACKET_SIZE but we may end up reading less. Thats why we cast buffer into string.
-					char buffer[S_PACKET_SIZE] = { 0 };
-					size_t bytes_recv = this->socket->receive(boost::asio::buffer(buffer, S_PACKET_SIZE));
-					string chunk(buffer, bytes_recv);
-					DEBUG("Got chunk, size: " << chunk.size());
-
-					file_cipher += chunk;
-
-					pSize -= bytes_recv; //Decrement total payload size left
-					msg_bytes_left -= bytes_recv; //Decrement message content size left
-				}
-
-				if (pSize != 0) {
-					throw runtime_error("Client finished reading message, even though payload size (bytes left to read) is not equal to zero.");
-				}
-				if (msg_bytes_left != 0) {
-					throw runtime_error("Client finished reading message, even though message content size (bytes left to read) is not equal to zero.");
-				}
+				auto file_abs_path = boost::filesystem::system_complete(temp_path);
+				DEBUG("Saving file to: " << file_abs_path);
 
 				//Decrypt
 				DEBUG("Decrypting file(" << file_cipher.size() << " bytes)...");
 				try {
 					AESWrapper aeswrapper(senderSymmKey, S_SYMMETRIC_KEY);
-					//[size] = 112016 crash
-					//[size] = 112640 success
+					//TODO: [size] = 112016 crash
+					//TODO: [size] = 112640 success
 					string file_plain = aeswrapper.decrypt((const char*)file_cipher.c_str(), file_cipher.size());
 					DEBUG("Successfully decrypted file! Size: " << file_plain.size());
 
@@ -619,8 +575,8 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 		//Finish content
 		cout << "----<EOM>-----\n" << endl;
 
-		//Add to pulled messages
-		if (push_to_vec)
+		//Add to pulled messages, in case message was read successfully
+		if (msg_read_success)
 			messages_pulled->push_back(msgResponse);
 	}
 	
@@ -808,7 +764,7 @@ size_t Client::calc_cipher_size(size_t plain_size) {
 	return ((plain_size / 16) + 1) * 16;
 }
 
-void Client::recvNullSink(size_t bytes_to_receive) {
+void Client::recvNullSink(size_t bytes_to_receive) const {
 	DEBUG("Receiving and ignoring " << bytes_to_receive << " bytes from socket");
 	char dummyBuffer[S_PACKET_SIZE];
 	size_t s_next_chunk;
@@ -818,4 +774,26 @@ void Client::recvNullSink(size_t bytes_to_receive) {
 		bytes_to_receive -= bytes_recv;
 	}
 	DEBUG("Finished ignoring " << bytes_to_receive << " bytes.");
+}
+
+void Client::recvChunks(size_t payloadSize, std::string& result) const {
+	//Read entire message by chunks
+	result = "";
+
+	size_t s_next_chunk;
+
+	while (payloadSize > 0) {
+		//Read chunk
+		char buffer[S_PACKET_SIZE] = { 0 };
+		size_t bytes_recv = 0;
+
+		s_next_chunk = min(payloadSize, S_PACKET_SIZE);
+		bytes_recv = this->socket->receive(boost::asio::buffer(buffer, s_next_chunk));
+
+		string chunk(buffer, bytes_recv); // Convert to string
+
+		result += chunk;
+
+		payloadSize -= bytes_recv;
+	}
 }

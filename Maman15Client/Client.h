@@ -64,7 +64,9 @@ private:
 	MessageUProtocol::MessageType recvMessageType();
 	MessageUProtocol::MessageSize recvMessageSize();
 	//Receives bytes from socket, doing nothing. (skipping.) (useful for ignoring undecryptable messages)
-	void recvNullSink(size_t bytes_to_receive);
+	void recvNullSink(size_t bytes_to_receive) const;
+	//Read the response from the server in chunks.
+	void recvChunks(size_t payloadSize, std::string& result) const;
 
 public:
 	Client(const std::string& ip, const std::string& port, const MessageUProtocol::Version clientVersion = 1);
