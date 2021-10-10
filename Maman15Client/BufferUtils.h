@@ -4,9 +4,6 @@
 #include <exception>
 #include <string>
 
-//Converts a buffer (null terminator is allowed in the middle) and return string.
-std::string buffer_to_str(const unsigned char* buffer, size_t s_buf);
-
 //Little endian buffer writer
 class BufferWriter
 {
@@ -16,7 +13,7 @@ private:
 
 	size_t offset;
 
-	bool check_overflow(size_t bytesGoingToWrite);
+	bool check_overflow(size_t bytesGoingToWrite) const;
 
 	bool isInternalBuffer;
 public:
@@ -30,7 +27,7 @@ public:
 
 	void write(const void* data, size_t size);
 	void writeVal(uint8_t val, size_t size);
-	size_t getOffset();
+	size_t getOffset() const;
 	const unsigned char* getBuffer();
 };
 
@@ -42,7 +39,7 @@ private:
 
 	size_t offset;
 
-	bool check_overflow(size_t bytesGoingToRead);
+	bool check_overflow(size_t bytesGoingToRead) const;
 
 public:
 	BufferReader(const unsigned char* buffer, size_t bufferSize);

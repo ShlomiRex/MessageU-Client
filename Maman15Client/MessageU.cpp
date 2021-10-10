@@ -281,11 +281,8 @@ void MessageU::pullMessagesChoice(Client& client)
 			MessageTypes _type = (MessageTypes)msg.msgType;
 			if (_type == MessageTypes::sendSymmetricKey) {
 				DEBUG("Found message of type 'sendSymmetricKey'");
-
-				//Save the symmetric key
-				//NOTE: WE HAVE THE SAME PROBLEM JUST AS SEND SYMM KEY! WE NEED THE STRING TO CONTAIN NULL TERMINATORS.
-				//string symmkey_cipher(msg.msgContent);
-				string symmkey_cipher = buffer_to_str((unsigned char*)msg.msgContent, msg.msgSize);
+                
+				string symmkey_cipher(msg.msgContent, msg.msgSize);
 
 				//Read and decode private key
 				DEBUG("Decoding my private key from info file...");

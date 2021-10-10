@@ -646,9 +646,7 @@ void Client::sendSymKey(const ClientId& myClientId, const SymmetricKey& mySymmKe
 	msgHeader.messageType = (MessageType)MessageTypes::sendSymmetricKey; //Cast enum to its value
 	memcpy(msgHeader.dest_clientId, dest_clientId, S_CLIENT_ID);
 
-	//string tmp_pubkey(dest_client_pubKey); //THIS WHAT CAUSED A LOT OF ISSUES AND I SPENT TONS OF TIME DEBUGGING WHY I GET DER DECODE ERROR.
-	//APPERANTLY, STRING STOPS AT TERMINATOR. BUT IN OUR CASE, WE WANT TERMINATORS INSIDE THE STRING.
-	string pubkey_str = buffer_to_str(dest_client_pubKey, S_PUBLIC_KEY);
+	string pubkey_str(dest_client_pubKey, S_PUBLIC_KEY);
 
 	//Encrypt symm key
 	DEBUG("Encrypting symm key...");

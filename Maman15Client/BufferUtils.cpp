@@ -31,7 +31,7 @@ void BufferWriter::write(const void* data, size_t size) {
     offset += size;
 }
 
-size_t BufferWriter::getOffset()
+size_t BufferWriter::getOffset() const
 {
     return offset;
 }
@@ -73,7 +73,7 @@ void BufferWriter::write1byte(uint8_t input) {
     offset += 1;
 }
 
-bool BufferWriter::check_overflow(size_t bytesToWrite) {
+bool BufferWriter::check_overflow(size_t bytesToWrite) const {
     if (offset + bytesToWrite > bufferSize) {
         return true;
     }
@@ -117,7 +117,7 @@ void BufferReader::read(size_t size, void* bufferToWriteTo, size_t bufferToWrite
     offset += size;
 }
 
-size_t BufferReader::getOffset()
+size_t BufferReader::getOffset() const
 {
     return offset;
 }
@@ -151,7 +151,7 @@ uint8_t BufferReader::read1byte() {
     return x;
 }
 
-bool BufferReader::check_overflow(size_t bytesToRead) {
+bool BufferReader::check_overflow(size_t bytesToRead) const {
     if (offset + bytesToRead > bufferSize) {
         return true;
     }
@@ -165,13 +165,4 @@ void BufferReader::addOffset(size_t amount) {
     }
 
     offset += amount;
-}
-
-std::string buffer_to_str(const unsigned char* buffer, size_t s_buf)
-{
-    string res;
-    for (size_t i = 0; i < s_buf; i++) {
-        res.push_back(buffer[i]);
-    }
-    return res;
 }
