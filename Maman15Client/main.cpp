@@ -1,9 +1,4 @@
-﻿#include "Client.h"
-#include "Debug.h"
-#include "ProtocolDefenitions.h"
-#include "Menu.h"
-#include "MessageU_User.h"
-#include "MessageU.h"
+﻿#include "main.h"
 
 #define DEBUG_PREFIX "[main] "
 

@@ -15,6 +15,9 @@ private:
 
 	bool check_overflow(size_t bytesGoingToWrite) const;
 
+    //If this class creates heap allocated buffer, we set this to true.
+    //Else, we set this to false.
+    //This indicates who owns the buffer, so we can safely free the heap.
 	bool isInternalBuffer;
 public:
 	BufferWriter(size_t bufferSize); //Create new buffer, and remember to delete at the deconstructor!
@@ -52,5 +55,5 @@ public:
 	uint32_t read4bytes();
 
 	void read(size_t size, void* bufferToWriteTo, size_t bufferToWriteToSize);
-	size_t getOffset();
+	size_t getOffset() const;
 };

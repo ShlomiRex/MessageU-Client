@@ -1,0 +1,2 @@
+* Instead of saving file to the exe directory, copy to %TMP% like in PDF
+

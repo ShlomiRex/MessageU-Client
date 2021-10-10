@@ -2,8 +2,7 @@
 
 using namespace std;
 
-BufferWriter::BufferWriter(unsigned char* buffer, size_t bufferSize) :
-    buffer(buffer), offset(0), bufferSize(bufferSize), isInternalBuffer(false) {
+BufferWriter::BufferWriter(unsigned char* buffer, size_t bufferSize) : buffer(buffer), offset(0), bufferSize(bufferSize), isInternalBuffer(false) {
     memset(buffer, 0, bufferSize);
 }
 
@@ -13,9 +12,8 @@ BufferWriter::BufferWriter(size_t bufferSize) : bufferSize(bufferSize), offset(0
 }
 
 BufferWriter::~BufferWriter() {
-    if (isInternalBuffer && buffer != nullptr) {
+    if (isInternalBuffer)
         delete[] buffer;
-    }
 }
 
 const unsigned char* BufferWriter::getBuffer() {
@@ -74,7 +72,7 @@ void BufferWriter::write1byte(uint8_t input) {
 }
 
 bool BufferWriter::check_overflow(size_t bytesToWrite) const {
-    if (offset + bytesToWrite > bufferSize) {
+    if ((offset + bytesToWrite) > bufferSize) {
         return true;
     }
 
@@ -143,7 +141,7 @@ uint16_t BufferReader::read2bytes() {
 
 uint8_t BufferReader::read1byte() {
     if (check_overflow(1)) {
-        throw exception("Buffer is full. Can't read 1 bytes.");
+        throw overflow_error("Buffer is full. Can't read 1 bytes.");
     }
 
     uint8_t x = *(uint8_t*)(buffer + offset);
@@ -152,7 +150,16 @@ uint8_t BufferReader::read1byte() {
 }
 
 bool BufferReader::check_overflow(size_t bytesToRead) const {
-    if (offset + bytesToRead > bufferSize) {
+    if (offset >= bufferSize || bytesToRead >= bufferSize)
+        return true;
+
+    if (offset < bytesToRead) {
+
+    } else {
+
+    }
+
+    if ((offset + bytesToRead) > bufferSize) {
         return true;
     }
 
@@ -161,7 +168,7 @@ bool BufferReader::check_overflow(size_t bytesToRead) const {
 
 void BufferReader::addOffset(size_t amount) {
     if (amount + offset > bufferSize) {
-        throw exception("Can't add offset: amount with offset will overflow buffer size.");
+        throw overflow_error("Can't add offset: amount with offset will overflow buffer size.");
     }
 
     offset += amount;

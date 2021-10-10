@@ -24,7 +24,7 @@ Client::~Client() {
 }
 
 void Client::registerUser(const string& username, ClientId& result_clientId) {
-	LOG("Registering user...");
+	DEBUG("Registering user...");
 
 	//Check if the info file exists
 	if (boost::filesystem::exists(FILE_REGISTER)) {
@@ -56,8 +56,8 @@ void Client::registerUser(const string& username, ClientId& result_clientId) {
 
 	DEBUG("Generated private key (" << privkey.size() << " bytes):");
 	hexify((const unsigned char*)privkey.c_str(), privkey.size());
-#endif
-	//Test other clients can encrypt with my public key
+
+    //Test other clients can encrypt with my public key
 	{
 		RSAPublicWrapper rsaPub(pubkey);
 		string plain = "Hello World!";
@@ -70,13 +70,13 @@ void Client::registerUser(const string& username, ClientId& result_clientId) {
 			assert(decrypted.compare(plain) == 0);
 		}
 	}
+#endif
 
 	//Pack public key
 	PublicKey my_publicKey = { 0 };
 	memcpy(my_publicKey, pubkey.c_str(), pubkey.size());
 	request.pack_pub_key(my_publicKey);
 
-	//Send request
 	sendRequest();
 
 	//Get response
@@ -125,8 +125,8 @@ size_t Client::sendRequest() {
 	size_t packetSize = request.getPacketSize();
 	auto buff = request.getPacket();
 
-	DEBUG("Sending request (" << packetSize << " bytes): ");
 #ifdef DEBUGGING
+    DEBUG("Sending request (" << packetSize << " bytes): ");
 	hexify((const unsigned char*)buff, packetSize);
 #endif
 	size_t bytesSent = this->socket->send(boost::asio::buffer(buff, packetSize));
@@ -319,12 +319,12 @@ MessageType Client::recvMessageType() {
 }
 
 MessageSize Client::recvMessageSize() {
-	DEBUG("Receving message size...");
+	DEBUG("Receiving message size...");
 	auto payload = recvNextPayload(sizeof(MessageSize));
 	BufferReader reader(payload, sizeof(MessageSize));
 	MessageSize msgSize = reader.read4bytes();
 	delete[] payload;
-	DEBUG("Recevied message size");
+	DEBUG("Received message size");
 	return msgSize;
 }
 
@@ -488,8 +488,7 @@ const vector<MessageResponse>* Client::pullMessages(const ClientId& client_id, c
 			else if (_msg_msgType_enum == MessageTypes::sendMessage) {
 				DEBUG("Handling message type: 'send message'...");
 
-				// Check valid symm key (if non-zero)
-				if (is_zero_filled(senderSymmKey, S_SYMMETRIC_KEY)) {
+                if (is_zero_filled(senderSymmKey, S_SYMMETRIC_KEY)) {
 					cout << "Can't decrypt message! Symmetric key is empty." << endl;
 					cout << "----<EOM>-----\n" << endl;
 					break;

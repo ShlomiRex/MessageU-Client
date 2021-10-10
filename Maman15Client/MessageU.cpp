@@ -219,12 +219,10 @@ void MessageU::sendMessageChoice(Client& client)
 {
 	Menu::showUsers(&users);
 
-	//Get destination
 	auto destUser = Menu::chooseUser(&users);
 	ClientId destClientId;
 	destUser.getClientId(destClientId);
 
-	//Get symm key. Check if we have the user's symm key.
 	SymmetricKey symmkey;
 	destUser.getSymmetricKey(symmkey);
 	if (is_zero_filled(symmkey, S_SYMMETRIC_KEY)) {
@@ -234,11 +232,9 @@ void MessageU::sendMessageChoice(Client& client)
 	//Get the message content to send.
 	string text = Menu::readText();
 
-	//Get my client id
 	ClientId myClientId;
 	me.getClientId(myClientId);
 
-	//Go
 	client.connect();
 	client.sendText(myClientId, destClientId, symmkey, text);
 }
@@ -281,7 +277,7 @@ void MessageU::pullMessagesChoice(Client& client)
 			MessageTypes _type = (MessageTypes)msg.msgType;
 			if (_type == MessageTypes::sendSymmetricKey) {
 				DEBUG("Found message of type 'sendSymmetricKey'");
-                
+
 				string symmkey_cipher(msg.msgContent, msg.msgSize);
 
 				//Read and decode private key

@@ -156,8 +156,7 @@ std::string Menu::chooseFile()
 		LOG("Please type the file path:");
 		string path;
 		getline(cin, path);
-		bool exists = boost::filesystem::exists(path);
-		if (exists) {
+		if (boost::filesystem::exists(path)) {
 			return path;
 		}
 		else {
