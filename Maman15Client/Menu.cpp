@@ -27,13 +27,22 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers)
 		LOG("Available users:");
 		for (size_t i = 0; i < availableUsers->size(); i++) {
 			const auto& user = availableUsers->at(i);
-			
+
+			LOG("\t" << (i + 1) << ") Username: \t\t" << user.getUsername());
+
+			// A decision was made: don't show public key, symm key, client id to user. Only in debugging mode.
+			// 1) User doesn't need to know the inner workings.
+			// 2) Possible symm key leak.
+
+#ifdef DEBUGGING
 			ClientId clientId;
 			user.getClientId(clientId);
 			string clientId_str = hexify_str(clientId, S_CLIENT_ID);
-
-			LOG("\t" << (i + 1) << ") Username: \t\t" << user.getUsername());
 			LOG("\tClient ID: \t\t" << clientId_str);
+#else
+			LOG("\tClient ID: \t\tAquired");
+#endif
+
 
 			//Check public key is not zeroes array
 			PublicKey pubkey = { 0 };
@@ -43,10 +52,14 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers)
 				LOG("\tPublic key: \t\tNot aquired");
 			}
 			else {
+#ifdef DEBUGGING
                 string pubkey_str((char*)pubkey, S_PUBLIC_KEY);
                 pubkey_str = pubkey_str.substr(0, SHOW_PUBKEY_MAX_CHARACTERS);
 				pubkey_str = hexify_str((unsigned char*)pubkey_str.c_str(), pubkey_str.size());
 				LOG("\tPublic key: \t\t" << pubkey_str << "... (" << S_PUBLIC_KEY << " bytes)");
+#else
+				LOG("\tPublic key: \t\tAquired");
+#endif
 			}
 
 			//Check symm key is not zeroes array
@@ -56,8 +69,12 @@ void Menu::showUsers(const vector<MessageU_User>* availableUsers)
 				LOG("\tSymmetric key: \t\tNot aquired");
 			}
 			else {
+#ifdef DEBUGGING
 				string symmkey_hex = hexify_str(symmkey, S_SYMMETRIC_KEY);
 				LOG("\tSymmetric key: \t\t" << symmkey_hex);
+#else
+				LOG("\tSymmetric key: \t\tAquired");
+#endif
 			}
 			LOG("");
 		}

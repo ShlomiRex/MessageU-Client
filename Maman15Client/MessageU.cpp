@@ -196,6 +196,16 @@ get_users:
 		user.setClientId(x.client_id);
 		user.setUsername((char*)x.username);
 
+		//Zero fields
+
+		PublicKey pubkey = { 0 };
+		user.setPublicKey(pubkey);
+
+		SymmetricKey symmkey = { 0 };
+		user.setSymmKey(symmkey);
+
+		user.setPrivateKey("");
+
 		newUsers.push_back(user);
 	}
 
