@@ -1,4 +1,4 @@
-# Maman15Client
+# MessageU-Client
  
 MessageU is encrypted end-to-end chat and file transfer protocol. Using RSA for key exchange and AES CBS for messaging and file transfer.
 
